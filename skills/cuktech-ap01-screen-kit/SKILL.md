@@ -19,8 +19,9 @@ cd ./cuktech-ap01-screen
 ```
 
 On Windows, run the same script with `py -3`; it automatically uses
-`.venv\Scripts\python.exe`. The native SwiftUI controller is macOS-only, while
-the project template, image converter and LAN Bridge support macOS and Windows.
+`.venv\Scripts\python.exe`. This repository ships a native SwiftUI controller
+for macOS and a PySide6 controller for Windows; the project template, image
+converter and LAN Bridge also support both systems.
 
 Do not copy firmware, cookies, tokens, signed URLs, device IDs, or generated
 artifacts into a shareable project.
@@ -32,9 +33,9 @@ artifacts into a shareable project.
    asset, atomically replace the served GIF, and avoid OTA.
 2. **Create or restyle a Claude/Codex quota panel**: read
    [references/quota-dashboard.md](references/quota-dashboard.md). Fetch the
-   signed-in official accounts on macOS, edit `render_master()`, run tests, and
-   serve the lightweight GIF. On Windows, use mock/manual/other API data because
-   the bundled Claude Desktop cookie/Keychain collector is macOS-specific.
+   signed-in official accounts on macOS or Windows, edit `render_master()`, run
+   tests, and serve the lightweight GIF. macOS uses Keychain for Claude Safe
+   Storage; Windows uses current-user DPAPI for Claude's Electron profile.
 3. **Install real-time loading for the first time**: read
    [references/realtime-firmware.md](references/realtime-firmware.md). Verify
    the exact firmware version before touching binary offsets.
@@ -54,9 +55,10 @@ artifacts into a shareable project.
 - For first-loader work, require stable AP01 power, Mi Home pairing/online
   status, internet access, and the owner's Xiaomi account. For ordinary local
   artwork, internet is optional after the loader is installed. Automatic
-  quota mode still needs internet access on its macOS host.
+  quota mode still needs internet access on its host computer.
 - Ensure macOS or Windows firewall/VPN settings allow inbound LAN access to
-  TCP 8765. Windows should allow Python on Private networks only.
+  TCP 8765. Windows should allow the packaged runtime (or Python when running
+  from source) on Private networks only.
 - Treat the firmware patch as specific to model `njcuk.enstor.ap01`, firmware
   `1.0.2_0031`; do not reuse its offsets on another build.
 - Start the bridge before installing and require a logged AP01

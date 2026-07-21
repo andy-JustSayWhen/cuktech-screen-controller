@@ -27,22 +27,21 @@ operations below as different workflows:
    missing; read the printed checklist and continue with the applicable setup.
 
 3. Confirm all of the following with the user:
-   - macOS 14+ and Apple Silicon only for the packaged native app; the
-     Python/coding-agent toolkit also supports Windows;
+   - Apple Silicon macOS 14+ for the macOS package, or Windows 10/11 x64 for
+     the Windows package; the Python/coding-agent toolkit supports both;
    - the AP01 is powered, paired in Mi Home, and shown online before any
      first-loader workflow;
    - the Bridge computer and AP01 are on the same LAN without client/AP isolation;
    - VPN/firewall rules permit LAN access to TCP 8765 and the computer LAN address
      is preferably reserved with DHCP;
    - Claude Desktop and the official Codex/ChatGPT app are installed and
-     signed in when automatic quota display is requested on macOS; the current
-     account-discovery integration is not the Windows custom-art path;
+     signed in when automatic quota display is requested on either platform;
    - whether this AP01 already requests `GET /screen.gif` from the Bridge computer;
    - exact AP01 model and firmware before any loader work.
 
    Explain the network requirement precisely: already-patched local artwork
    needs only a working LAN; automatic quota refreshes need internet on the
-   macOS host; a first-loader installation needs the AP01 and installation
+   host computer; a first-loader installation needs the AP01 and installation
    environment online. USB and the
    charging-base contacts are not the screen-content transport used here.
 4. For a source/agent installation, run the platform-appropriate setup:
@@ -51,7 +50,7 @@ operations below as different workflows:
    ./scripts/setup-macos.sh
 
    # Windows PowerShell
-   powershell -ExecutionPolicy Bypass -File scripts/setup-windows.ps1
+   powershell -ExecutionPolicy Bypass -File scripts/setup-windows.ps1 -App
    ```
 
 5. Verify both endpoints and the device request:

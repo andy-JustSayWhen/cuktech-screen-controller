@@ -2,7 +2,9 @@
 param(
     [string]$InputImage,
     [ValidateSet("contain", "cover", "stretch")]
-    [string]$Fit = "contain"
+    [string]$Fit = "contain",
+    [switch]$App,
+    [switch]$NoLaunch
 )
 
 $ErrorActionPreference = "Stop"
@@ -34,8 +36,13 @@ if (-not (Test-Path $VenvPython)) {
 }
 Write-Host "[2/4] Virtual environment is ready."
 
-& $VenvPython -m pip install --disable-pip-version-check -r requirements.txt
-& $VenvPython -c "import PIL, requests, cryptography"
+$Requirements = if ($App) { "requirements-windows-app.txt" } else { "requirements.txt" }
+& $VenvPython -m pip install --disable-pip-version-check -r $Requirements
+if ($App) {
+    & $VenvPython -c "import PIL, requests, cryptography, PySide6"
+} else {
+    & $VenvPython -c "import PIL, requests, cryptography"
+}
 Write-Host "[3/4] Python dependencies are ready."
 
 New-Item -ItemType Directory -Force -Path (Join-Path $Root "artifacts") | Out-Null
@@ -53,3 +60,15 @@ Write-Host "  .\.venv\Scripts\python.exe -u ap01_screen_bridge.py artifacts\cust
 Write-Host ""
 Write-Host "Then allow Python through Windows Defender Firewall for Private networks."
 Write-Host "AP01 and this PC must be on the same non-isolated LAN."
+
+if ($App) {
+    Write-Host ""
+    Write-Host "Windows controller:"
+    Write-Host "  .\.venv\Scripts\pythonw.exe windows\AP01ScreenController.py"
+    if (-not $NoLaunch) {
+        $ControllerScript = Join-Path $Root "windows\AP01ScreenController.py"
+        Start-Process -FilePath (Join-Path $Root ".venv\Scripts\pythonw.exe") `
+            -ArgumentList ('"' + $ControllerScript + '"') `
+            -WorkingDirectory $Root
+    }
+}

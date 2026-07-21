@@ -2,16 +2,18 @@
 
 ## Data sources
 
-The bundled automatic account collector currently targets macOS because it
-reads Claude Desktop's macOS cookie store/Keychain and the official app bundle.
-On Windows, the renderer itself works with fallback/manual/other API data, but
-do not claim that the current code automatically reads the Windows Claude app.
+The bundled automatic account collector supports macOS and Windows. macOS
+reads Claude Desktop's cookie store and Claude Safe Storage through Keychain.
+Windows copies the current user's Electron cookie database, unwraps its key
+with DPAPI, and decrypts supported Chromium cookie records in memory.
 
 - Query Codex through the signed-in official `codex app-server` API.
 - Query Claude through Claude Desktop's encrypted Electron cookies and the
   official Claude usage endpoint.
 - Keep credentials and session cookies in memory. Write only sanitized quota
   values and rendered images.
+- On Windows, look for the official Codex executable or CLI; use
+  `CUKTECH_CODEX_BIN` only for a non-standard installation.
 
 The bundled renderer supports Claude 5-hour, weekly, and Fable 5 windows plus
 Codex 5-hour and weekly windows. A missing Codex 5-hour window is rendered as
@@ -23,6 +25,9 @@ the promotional/inactive state rather than as an API error.
 .venv/bin/python quota_dashboard.py
 .venv/bin/python -m unittest -v test_quota_dashboard.py
 ```
+
+Windows PowerShell uses `.\.venv\Scripts\python.exe` in place of
+`.venv/bin/python`.
 
 Outputs live in `artifacts/`:
 

@@ -1,5 +1,8 @@
 import unittest
 import os
+import hashlib
+import io
+import json
 from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -8,8 +11,11 @@ from quota_dashboard import (
     AP01_GIF_MAX_BYTES,
     Quota,
     _claude_fable_limit,
+    _codex_command,
     _codex_executable,
     _compact_reset_summary,
+    _decrypt_windows_cookie,
+    _read_json_rpc,
     _reset_countdown,
     render_frame,
     render_master,
@@ -18,6 +24,42 @@ from quota_dashboard import (
 
 
 class QuotaDashboardTests(unittest.TestCase):
+    def test_json_rpc_pipe_reader_is_windows_compatible(self) -> None:
+        class Process:
+            stdout = io.StringIO(
+                json.dumps({"method": "ready"}) + "\n" + json.dumps({"id": 7, "result": {"ok": True}}) + "\n"
+            )
+
+        self.assertEqual(_read_json_rpc(Process(), 7, 1)["result"], {"ok": True})
+
+    def test_windows_batch_codex_uses_cmd_prefix(self) -> None:
+        from unittest.mock import patch
+
+        with patch("quota_dashboard.os.name", "nt"), patch.dict(
+            os.environ, {"COMSPEC": "C:/Windows/System32/cmd.exe"}
+        ):
+            self.assertEqual(
+                _codex_command("C:/Users/Test/AppData/Roaming/npm/codex.cmd"),
+                [
+                    "C:/Windows/System32/cmd.exe",
+                    "/d",
+                    "/s",
+                    "/c",
+                    "C:/Users/Test/AppData/Roaming/npm/codex.cmd",
+                ],
+            )
+
+    def test_windows_chromium_aes_cookie_decrypts_in_memory(self) -> None:
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+        key = bytes(range(32))
+        nonce = bytes(range(12))
+        host = ".claude.ai"
+        value = "sk-ant-session-test"
+        plaintext = hashlib.sha256(host.encode()).digest() + value.encode()
+        encrypted = b"v10" + nonce + AESGCM(key).encrypt(nonce, plaintext, None)
+        self.assertEqual(_decrypt_windows_cookie(encrypted, host, key), value)
+
     def test_codex_executable_accepts_explicit_desktop_or_cli_path(self) -> None:
         from unittest.mock import patch
 
@@ -26,6 +68,20 @@ class QuotaDashboardTests(unittest.TestCase):
             executable.write_text("#!/bin/sh\n", encoding="utf-8")
             executable.chmod(0o755)
             with patch.dict(os.environ, {"CUKTECH_CODEX_BIN": str(executable)}):
+                self.assertEqual(_codex_executable(), str(executable))
+
+    def test_codex_executable_finds_windows_store_companion_binary(self) -> None:
+        from unittest.mock import patch
+
+        with TemporaryDirectory() as directory:
+            executable = Path(directory) / "OpenAI/Codex/bin/codex.exe"
+            executable.parent.mkdir(parents=True)
+            executable.write_bytes(b"MZ")
+            executable.chmod(0o755)
+            with patch.dict(
+                os.environ,
+                {"LOCALAPPDATA": directory, "CUKTECH_CODEX_BIN": ""},
+            ), patch("quota_dashboard.shutil.which", return_value=None):
                 self.assertEqual(_codex_executable(), str(executable))
 
     def test_fable_scoped_limit_is_kept_even_when_inactive(self) -> None:

@@ -17,9 +17,9 @@ stock AP01.
 - A CUKTECH 10 charging station and its detachable AP01 display;
 - stable AP01 power, especially during a first loader installation;
 - model `njcuk.enstor.ap01` on firmware `1.0.2_0031` for the published loader;
-- either an Apple Silicon Mac for the native GUI, or a Windows PC with Python
-  3.9+ for the coding-agent/Python workflow. The native package is macOS
-  `arm64`; the [Windows toolkit workflow](WINDOWS_GUIDE.md) does not use it;
+- either Apple Silicon macOS 14+ or Windows 10/11 x64. Both platforms have a
+  desktop GUI and also support the coding-agent/Python workflow. Intel Mac and
+  native Windows-on-ARM packages are not currently provided;
 - no USB data cable is required. Normal content delivery uses Wi-Fi/LAN rather
   than USB or the charging-base contacts.
 
@@ -49,7 +49,7 @@ AP01_IP "GET /screen.gif HTTP/1.0" 200
 | Workflow | Bridge computer internet | AP01 internet | Local LAN |
 | --- | --- | --- | --- |
 | Local artwork on an already-patched display | Only for initial download | No | Required |
-| Claude/Codex live quotas (current macOS integration) | Required for quota refreshes | No, but it must reach the Bridge | Required |
+| Claude/Codex live quotas (macOS / Windows) | Required for quota refreshes | No, but it must reach the Bridge | Required |
 | First loader installation on a stock display | Required | Required and online in Mi Home | Required |
 
 If the WAN fails but the LAN remains available, local artwork can still work.
@@ -59,7 +59,8 @@ Quota mode retains its last successful values until internet access returns.
 
 For quota mode, install and sign in to the official Claude Desktop and
 Codex/ChatGPT app, or a signed-in Codex CLI. Approve Claude Safe Storage access
-when macOS asks. Never paste cookies, passwords, or Keychain data into a chat.
+when macOS asks. Windows uses current-user DPAPI to read Claude Desktop's local
+session in memory. Never paste cookies, passwords, or Keychain data into a chat.
 
 For a first loader installation, have the target AP01 owner's Mi Home account
 available and use the same device region. An account without an FDS-capable
@@ -69,15 +70,14 @@ of GitHub.
 
 ## 6. Continuous operation
 
-The macOS installer creates a per-user login service; Windows may use Task
-Scheduler. Keep the Bridge computer awake and the user
+Both desktop installers create a per-user login Bridge. Keep the Bridge computer awake and the user
 logged in for live updates. The AP01 retains the last successful screen while
 the Bridge computer sleeps or is offline, but it cannot refresh. Its normal poll interval
 is about five minutes, so a pushed image may not appear immediately.
 
 ## 7. Final checklist
 
-- [ ] Chosen platform: Apple Silicon macOS app, or Windows/Python agent toolkit
+- [ ] Chosen platform: Apple Silicon macOS app, or Windows 10/11 x64 app
 - [ ] AP01 on stable power and online in Mi Home
 - [ ] Same non-guest, non-isolated LAN
 - [ ] Local TCP 8765 allowed by macOS/Windows/VPN/firewall

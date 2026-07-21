@@ -7,9 +7,26 @@ from unittest.mock import Mock, patch
 
 import ap01_install_firmware
 from ap01_custom_ota import choose_fds_device
+from mi_cloud import MiCloud
 
 
 class InstallFirmwareTests(unittest.TestCase):
+    def test_windows_json_credentials_are_loaded_without_persisting_tokens(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "mi-credentials.json"
+            path.write_text(
+                '{"userId":"10001","passToken":"secret","deviceId":"windows-device"}',
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                MiCloud._load_account(credentials=path),
+                {
+                    "userId": "10001",
+                    "passToken": "secret",
+                    "deviceId": "windows-device",
+                },
+            )
+
     def make_firmware(self, root: Path) -> Path:
         path = root / "screen-realtime.bin"
         path.write_bytes(b"BFNP" + bytes(60))

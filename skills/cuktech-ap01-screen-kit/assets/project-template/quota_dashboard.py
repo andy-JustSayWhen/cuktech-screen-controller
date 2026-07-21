@@ -13,16 +13,18 @@ No API key, access token, or browser cookie is written to the output files.
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import json
 import math
 import mmap
 import os
-import select
+import queue
 import shutil
 import sqlite3
 import subprocess
-import time
+import tempfile
+import threading
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
@@ -38,13 +40,17 @@ AP01_GIF_MAX_BYTES = 221_445
 MASTER_SCALE = 4
 PREVIEW_SCALE = 2
 CLAUDE_BASE_URL = "https://claude.ai/api"
-CLAUDE_DATA_DIR = Path.home() / "Library/Application Support/Claude"
+CLAUDE_DATA_DIR = (
+    Path(os.environ.get("APPDATA", Path.home() / "AppData/Roaming")) / "Claude"
+    if os.name == "nt"
+    else Path.home() / "Library/Application Support/Claude"
+)
 CLAUDE_APP = Path("/Applications/Claude.app")
 PROVIDER_ICON_DIR = Path(__file__).resolve().parent / "reference/provider-icons"
 
 
 def _codex_executable() -> str:
-    """Find Codex from either a CLI install or the official macOS app.
+    """Find Codex from a CLI install or the official desktop app.
 
     A new user may be signed in through the official desktop app without
     having installed the ``codex`` shell command.  The desktop bundle ships a
@@ -53,13 +59,20 @@ def _codex_executable() -> str:
     """
 
     override = os.environ.get("CUKTECH_CODEX_BIN", "").strip()
+    local_app_data = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData/Local"))
     candidates = [
         override,
         shutil.which("codex") or "",
+        str(local_app_data / "OpenAI/Codex/bin/codex.exe"),
         "/Applications/ChatGPT.app/Contents/Resources/codex",
         "/Applications/Codex.app/Contents/Resources/codex",
         str(Path.home() / "Applications/ChatGPT.app/Contents/Resources/codex"),
         str(Path.home() / "Applications/Codex.app/Contents/Resources/codex"),
+        str(local_app_data / "Programs/Codex/resources/codex.exe"),
+        str(local_app_data / "Programs/ChatGPT/resources/codex.exe"),
+        str(local_app_data / "Programs/OpenAI/Codex/resources/codex.exe"),
+        str(local_app_data / "Microsoft/WindowsApps/codex.exe"),
+        str(Path(os.environ.get("PROGRAMFILES", "C:/Program Files")) / "Codex/codex.exe"),
     ]
     for candidate in candidates:
         if candidate and os.path.isfile(candidate) and os.access(candidate, os.X_OK):
@@ -68,6 +81,14 @@ def _codex_executable() -> str:
         "未找到 Codex。请先安装并登录官方 Codex/ChatGPT App，"
         "或安装 codex CLI 后重新启动服务"
     )
+
+
+def _codex_command(executable: str) -> list[str]:
+    """Return a Windows-safe command prefix for an executable or batch shim."""
+
+    if os.name == "nt" and os.path.splitext(executable)[1].lower() in {".cmd", ".bat"}:
+        return [os.environ.get("COMSPEC", "cmd.exe"), "/d", "/s", "/c", executable]
+    return [executable]
 
 
 @dataclass
@@ -97,27 +118,47 @@ class Quota:
 
 
 def _read_json_rpc(proc: subprocess.Popen[str], request_id: int, timeout: float) -> dict[str, Any]:
+    """Read one JSON-RPC response without relying on POSIX pipe ``select``.
+
+    Windows only supports ``select`` for sockets. A short-lived reader thread
+    keeps the exact same stdio protocol working for Codex on both platforms.
+    """
+
     assert proc.stdout is not None
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        ready, _, _ = select.select([proc.stdout], [], [], min(0.5, deadline - time.monotonic()))
-        if not ready:
-            continue
-        line = proc.stdout.readline()
-        if not line:
-            break
+    responses: queue.Queue[dict[str, Any] | BaseException | None] = queue.Queue(maxsize=1)
+
+    def reader() -> None:
         try:
-            message = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if message.get("id") == request_id:
-            return message
-    raise TimeoutError(f"Codex app-server request {request_id} timed out")
+            while True:
+                line = proc.stdout.readline()
+                if not line:
+                    responses.put(None)
+                    return
+                try:
+                    message = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if message.get("id") == request_id:
+                    responses.put(message)
+                    return
+        except BaseException as exc:  # propagate pipe/decoding failures
+            responses.put(exc)
+
+    threading.Thread(target=reader, name=f"codex-rpc-{request_id}", daemon=True).start()
+    try:
+        result = responses.get(timeout=timeout)
+    except queue.Empty as exc:
+        raise TimeoutError(f"Codex app-server request {request_id} timed out") from exc
+    if result is None:
+        raise RuntimeError(f"Codex app-server closed before response {request_id}")
+    if isinstance(result, BaseException):
+        raise RuntimeError(f"Codex app-server read failed: {result}") from result
+    return result
 
 
 def fetch_codex(timeout: float = 40.0) -> Quota:
     proc = subprocess.Popen(
-        [_codex_executable(), "app-server", "--listen", "stdio://"],
+        _codex_command(_codex_executable()) + ["app-server", "--listen", "stdio://"],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
@@ -214,6 +255,13 @@ def _claude_chrome_version() -> str:
 
 
 def _claude_user_agent() -> str:
+    if os.name == "nt":
+        return (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Claude/1.0 Chrome/136.0.0.0 Electron/36.0.0 Safari/537.36"
+        )
+
     import plistlib
 
     app_version = "1.0"
@@ -236,6 +284,110 @@ def _claude_user_agent() -> str:
     )
 
 
+def _windows_dpapi_decrypt(payload: bytes) -> bytes:
+    """Decrypt one Windows DPAPI blob for the current signed-in user."""
+
+    if os.name != "nt":
+        raise RuntimeError("Windows DPAPI is available only on Windows")
+    import ctypes
+    from ctypes import wintypes
+
+    class DataBlob(ctypes.Structure):
+        _fields_ = [("cbData", wintypes.DWORD), ("pbData", ctypes.POINTER(ctypes.c_ubyte))]
+
+    source_buffer = ctypes.create_string_buffer(payload)
+    source = DataBlob(
+        len(payload),
+        ctypes.cast(source_buffer, ctypes.POINTER(ctypes.c_ubyte)),
+    )
+    output = DataBlob()
+    if not ctypes.windll.crypt32.CryptUnprotectData(
+        ctypes.byref(source), None, None, None, None, 0, ctypes.byref(output)
+    ):
+        raise ctypes.WinError()
+    try:
+        return ctypes.string_at(output.pbData, output.cbData)
+    finally:
+        ctypes.windll.kernel32.LocalFree(output.pbData)
+
+
+def _windows_chromium_key(data_dir: Path) -> bytes | None:
+    state_path = data_dir / "Local State"
+    try:
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        encoded = state["os_crypt"]["encrypted_key"]
+        encrypted = base64.b64decode(encoded)
+        if encrypted.startswith(b"DPAPI"):
+            encrypted = encrypted[5:]
+        return _windows_dpapi_decrypt(encrypted)
+    except (OSError, KeyError, ValueError, json.JSONDecodeError):
+        return None
+
+
+def _decrypt_windows_cookie(
+    encrypted: bytes,
+    host: str,
+    key: bytes | None,
+) -> str | None:
+    """Decrypt Chromium/Electron cookie formats used by Claude on Windows."""
+
+    if not encrypted:
+        return None
+    try:
+        if encrypted[:3] in (b"v10", b"v11") and key:
+            from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+            nonce = encrypted[3:15]
+            decoded = AESGCM(key).decrypt(nonce, encrypted[15:], None)
+        elif encrypted[:3] == b"v20":
+            # Chromium app-bound encryption cannot be unwrapped by a normal
+            # user process. Claude Desktop currently uses v10/v11, but keep a
+            # precise fallback instead of returning corrupt text.
+            return None
+        else:
+            decoded = _windows_dpapi_decrypt(encrypted)
+        host_digest = hashlib.sha256(host.encode()).digest()
+        if decoded.startswith(host_digest):
+            decoded = decoded[len(host_digest) :]
+        return decoded.decode("utf-8")
+    except (OSError, ValueError, UnicodeDecodeError):
+        return None
+
+
+def _cookie_database(data_dir: Path) -> Path:
+    candidates = [
+        data_dir / "Network/Cookies",
+        data_dir / "Cookies",
+        data_dir / "Default/Network/Cookies",
+        data_dir / "Default/Cookies",
+    ]
+    return next((item for item in candidates if item.exists()), candidates[0])
+
+
+def _read_cookie_database(database: Path) -> list[tuple[Any, ...]]:
+    """Copy Chromium's live database before reading to avoid Windows locks."""
+
+    with tempfile.TemporaryDirectory(prefix="cuktech-claude-") as directory:
+        copy = Path(directory) / "Cookies"
+        try:
+            shutil.copy2(database, copy)
+            for suffix in ("-wal", "-shm"):
+                sidecar = Path(str(database) + suffix)
+                if sidecar.exists():
+                    shutil.copy2(sidecar, Path(str(copy) + suffix))
+            target = copy
+        except OSError:
+            target = database
+        connection = sqlite3.connect(f"file:{target}?mode=ro", uri=True)
+        try:
+            return connection.execute(
+                "SELECT host_key,name,value,encrypted_value,path FROM cookies "
+                "WHERE host_key IN ('.claude.ai','claude.ai')"
+            ).fetchall()
+        finally:
+            connection.close()
+
+
 def _claude_cookie_rows() -> list[tuple[str, str, str, str]]:
     """Decrypt Claude Desktop cookies; return domain/name/value/path in memory."""
     try:
@@ -243,41 +395,40 @@ def _claude_cookie_rows() -> list[tuple[str, str, str, str]]:
     except ImportError as exc:
         raise RuntimeError("cryptography is required for Claude Desktop cookies") from exc
 
-    secret = subprocess.run(
-        ["security", "find-generic-password", "-s", "Claude Safe Storage", "-w"],
-        check=True,
-        capture_output=True,
-        text=True,
-        timeout=30,
-    ).stdout.rstrip("\n")
-    key = hashlib.pbkdf2_hmac("sha1", secret.encode(), b"saltysalt", 1003, 16)
-    database = CLAUDE_DATA_DIR / "Cookies"
-    connection = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
-    try:
-        rows = connection.execute(
-            "SELECT host_key,name,value,encrypted_value,path FROM cookies "
-            "WHERE host_key IN ('.claude.ai','claude.ai')"
-        ).fetchall()
-    finally:
-        connection.close()
+    database = _cookie_database(CLAUDE_DATA_DIR)
+    rows = _read_cookie_database(database)
+    if os.name == "nt":
+        key = _windows_chromium_key(CLAUDE_DATA_DIR)
+    else:
+        secret = subprocess.run(
+            ["security", "find-generic-password", "-s", "Claude Safe Storage", "-w"],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        ).stdout.rstrip("\n")
+        key = hashlib.pbkdf2_hmac("sha1", secret.encode(), b"saltysalt", 1003, 16)
 
     result: list[tuple[str, str, str, str]] = []
     for host, name, plain, encrypted, path in rows:
         value = plain
-        if not value and encrypted and encrypted[:3] in (b"v10", b"v11"):
-            decryptor = Cipher(algorithms.AES(key), modes.CBC(b" " * 16)).decryptor()
-            decoded = decryptor.update(encrypted[3:]) + decryptor.finalize()
-            padding = decoded[-1]
-            if not 1 <= padding <= 16 or not decoded.endswith(bytes([padding]) * padding):
-                continue
-            decoded = decoded[:-padding]
-            host_digest = hashlib.sha256(host.encode()).digest()
-            if decoded.startswith(host_digest):
-                decoded = decoded[len(host_digest) :]
-            try:
-                value = decoded.decode()
-            except UnicodeDecodeError:
-                continue
+        if not value and encrypted:
+            if os.name == "nt":
+                value = _decrypt_windows_cookie(encrypted, host, key)
+            elif encrypted[:3] in (b"v10", b"v11"):
+                decryptor = Cipher(algorithms.AES(key), modes.CBC(b" " * 16)).decryptor()
+                decoded = decryptor.update(encrypted[3:]) + decryptor.finalize()
+                padding = decoded[-1]
+                if not 1 <= padding <= 16 or not decoded.endswith(bytes([padding]) * padding):
+                    continue
+                decoded = decoded[:-padding]
+                host_digest = hashlib.sha256(host.encode()).digest()
+                if decoded.startswith(host_digest):
+                    decoded = decoded[len(host_digest) :]
+                try:
+                    value = decoded.decode()
+                except UnicodeDecodeError:
+                    continue
         if value:
             result.append((host, name, value, path))
     if not any(name == "sessionKey" and value.startswith("sk-ant-") for _, name, value, _ in result):

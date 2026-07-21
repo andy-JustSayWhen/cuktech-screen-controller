@@ -1,0 +1,11 @@
+CUKTECH Screen Controller for Windows bundles the following runtime components:
+
+- CPython, under the Python Software Foundation License.
+- Qt for Python / PySide6 and Qt libraries, under LGPLv3/GPLv3 or a commercial
+  Qt license. The portable package uses dynamically linked, replaceable Qt DLLs.
+- Pillow, Requests, Cryptography, cffi, and their transitive dependencies under
+  the licenses shipped in each package's .dist-info directory.
+
+The complete license files remain inside the portable App directory. Project
+source code and notices are available at:
+https://github.com/wqytommy666/cuktech-screen-controller

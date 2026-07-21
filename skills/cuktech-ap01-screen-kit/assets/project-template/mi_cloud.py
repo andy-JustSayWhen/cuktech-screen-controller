@@ -11,6 +11,7 @@ import argparse
 import base64
 import hashlib
 import json
+import os
 import plistlib
 import random
 import time
@@ -29,15 +30,60 @@ DEFAULT_PREFS = Path.home() / (
 
 
 class MiCloud:
-    def __init__(self, prefs: Path = DEFAULT_PREFS) -> None:
-        with prefs.open("rb") as stream:
-            account = plistlib.load(stream)["GroupShareAccountInfo"]
+    def __init__(self, prefs: Path | None = None, credentials: Path | None = None) -> None:
+        account = self._load_account(prefs=prefs, credentials=credentials)
         self.user_id = str(account["userId"])
-        self.pass_token = account["passToken"]
-        self.device_id = "B4C9D5BF5C4B6925"
+        self.pass_token = str(account["passToken"])
+        self.device_id = str(account.get("deviceId") or "B4C9D5BF5C4B6925")
         self.ssecurity = ""
         self.service_token = ""
         self._refresh_session()
+
+    @staticmethod
+    def _load_account(
+        *, prefs: Path | None = None, credentials: Path | None = None
+    ) -> dict[str, Any]:
+        """Load a Mi Home session without ever printing or copying its token.
+
+        macOS can read the signed-in Mi Home preference file. Windows has no
+        equivalent plist, so its controller accepts a local JSON file through
+        ``CUKTECH_MI_CREDENTIALS``. Environment values are also useful for a
+        credential manager or CI wrapper and are never written to artifacts.
+        """
+
+        user_id = os.environ.get("CUKTECH_MI_USER_ID", "").strip()
+        pass_token = os.environ.get("CUKTECH_MI_PASS_TOKEN", "").strip()
+        if user_id and pass_token:
+            return {
+                "userId": user_id,
+                "passToken": pass_token,
+                "deviceId": os.environ.get("CUKTECH_MI_DEVICE_ID", "").strip(),
+            }
+
+        selected = credentials
+        if selected is None:
+            configured = os.environ.get("CUKTECH_MI_CREDENTIALS", "").strip()
+            selected = Path(configured).expanduser() if configured else None
+        if selected is not None:
+            payload = json.loads(selected.read_text(encoding="utf-8-sig"))
+            account = {
+                "userId": payload.get("userId") or payload.get("user_id"),
+                "passToken": payload.get("passToken") or payload.get("pass_token"),
+                "deviceId": payload.get("deviceId") or payload.get("device_id") or "",
+            }
+            if not account["userId"] or not account["passToken"]:
+                raise RuntimeError("米家凭据 JSON 缺少 userId 或 passToken")
+            return account
+
+        preference = prefs or DEFAULT_PREFS
+        try:
+            with preference.open("rb") as stream:
+                return plistlib.load(stream)["GroupShareAccountInfo"]
+        except (OSError, KeyError, plistlib.InvalidFileException) as exc:
+            raise RuntimeError(
+                "没有找到米家登录态。macOS 请先登录米家 App；Windows 请在软件中"
+                "选择仅保存在本机的米家凭据 JSON，或设置 CUKTECH_MI_CREDENTIALS。"
+            ) from exc
 
     def _refresh_session(self) -> None:
         session = requests.Session()

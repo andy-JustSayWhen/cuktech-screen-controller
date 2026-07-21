@@ -1,0 +1,61 @@
+name: Windows Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version without the v prefix
+        required: true
+        default: 0.3.0
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Resolve version
+        id: version
+        shell: powershell
+        run: |
+          if ('${{ github.event_name }}' -eq 'workflow_dispatch') {
+            $Version = '${{ inputs.version }}'
+          } else {
+            $Version = '${{ github.ref_name }}'.TrimStart('v')
+          }
+          "version=$Version" >> $env:GITHUB_OUTPUT
+      - name: Build and package Windows x64
+        shell: powershell
+        run: |
+          .\windows\build-app.ps1 -Version '${{ steps.version.outputs.version }}'
+          .\windows\package-release.ps1 -Version '${{ steps.version.outputs.version }}' -SkipBuild
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CUKTECH-Screen-Controller-${{ steps.version.outputs.version }}-Windows-x64
+          path: |
+            dist/CUKTECH-Screen-Controller-${{ steps.version.outputs.version }}-Windows-x64.zip
+            dist/CUKTECH-Screen-Controller-${{ steps.version.outputs.version }}-Windows-x64.zip.sha256
+      - name: Attach assets to a tagged GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $Tag = '${{ github.ref_name }}'
+          $Version = '${{ steps.version.outputs.version }}'
+          gh release view $Tag 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $Tag --title "CUKTECH Screen Controller $Tag" --generate-notes
+          }
+          gh release upload $Tag `
+            "dist/CUKTECH-Screen-Controller-$Version-Windows-x64.zip" `
+            "dist/CUKTECH-Screen-Controller-$Version-Windows-x64.zip.sha256" `
+            --clobber

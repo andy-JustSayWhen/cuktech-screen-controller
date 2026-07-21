@@ -16,13 +16,14 @@
 - 酷态科 10 号充电站和它的 AP01 可拆卸万向屏；
 - AP01 保持稳定供电，首次加载器安装期间不要拔电、复位或移动到无网络区域；
 - 当前公开加载器只适用于型号 `njcuk.enstor.ap01`、固件 `1.0.2_0031`；
-- 二选一：Apple Silicon Mac（用于原生图形软件），或者安装了 Python 3.9+
-  的 Windows 电脑（用于 Coding Agent/Python 工具链）；
+- 二选一：Apple Silicon macOS 14+ 电脑，或 Windows 10/11 x64 电脑；两者都有
+  图形软件，也都可以使用 Coding Agent/Python 工具链；
 - **不需要 USB 数据线。** 本项目的日常显示内容通过 Wi-Fi/LAN 传输，不经过 USB
   或底座的触点。
 
-当前原生图形安装包是 macOS `arm64`，Intel Mac 和 Windows 不能运行这个 App；
-但 Windows 可以按照 [Windows 使用指南](WINDOWS_GUIDE.zh-CN.md)运行脚本和 Bridge。
+Windows 图形软件的安装与防火墙步骤见
+[Windows 使用指南](WINDOWS_GUIDE.zh-CN.md)。Intel Mac 和 Windows on ARM
+暂时没有原生安装包。
 
 ## 3. AP01 和充电站需要怎样联网
 
@@ -55,7 +56,7 @@ AP01_IP "GET /screen.gif HTTP/1.0" 200
 | 使用方式 | Bridge 电脑需要互联网 | AP01 需要互联网 | 只需要局域网 |
 | --- | --- | --- | --- |
 | 已改造屏幕显示本地图片/GIF | 仅首次下载软件时需要 | 否 | 是 |
-| Claude/Codex 实时额度（当前 macOS 集成） | 是，用于读取最新额度 | 否，但必须能访问 Bridge 电脑 | 是 |
+| Claude/Codex 实时额度（macOS / Windows） | 是，用于读取最新额度 | 否，但必须能访问 Bridge 电脑 | 是 |
 | 原厂屏首次安装加载器 | 是 | 是，并且米家中要显示在线 | 是 |
 
 外网中断但路由器仍正常时，本地图片仍然可以刷新；额度数据会保留上一次成功值并等待
@@ -73,6 +74,8 @@ AP01_IP "GET /screen.gif HTTP/1.0" 200
 - 安装并登录官方 Codex/ChatGPT App，或已经登录的 Codex CLI；
 - 第一次读取 Claude 时，macOS 可能询问是否访问“Claude Safe Storage”，选择
   “允许”或“始终允许”；
+- Windows 使用当前用户的 DPAPI 在内存中读取 Claude Desktop 登录态，应以登录
+  Claude 的同一 Windows 账户运行控制器；
 - 不要把 Cookie、密码或钥匙串内容复制到聊天或 GitHub。
 
 ### 原厂屏首次安装加载器
@@ -85,7 +88,7 @@ AP01_IP "GET /screen.gif HTTP/1.0" 200
 
 ## 6. Bridge 电脑需要保持什么状态
 
-- macOS 安装程序会创建登录自启 Bridge；Windows 可使用任务计划程序；
+- macOS 与 Windows 安装程序都会创建当前用户的登录自启 Bridge；
 - 需要持续显示实时数据时，让电脑保持开机、用户已登录并避免深度睡眠；
 - 笔记本合盖睡眠后不会继续刷新；
 - AP01 默认约每 5 分钟请求一次画面，所以推送后不一定立即变化；
@@ -94,7 +97,7 @@ AP01_IP "GET /screen.gif HTTP/1.0" 200
 
 ## 7. 安装前最终勾选
 
-- [ ] 已选择平台：Apple Silicon macOS App，或 Windows/Python Agent 工具链
+- [ ] 已选择平台：Apple Silicon macOS App，或 Windows 10/11 x64 App
 - [ ] 酷态科 AP01 已稳定供电
 - [ ] AP01 已在米家配网并显示在线
 - [ ] Bridge 电脑与 AP01 位于同一非访客、非隔离局域网

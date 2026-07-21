@@ -1,0 +1,25 @@
+CUKTECH Screen Controller {{VERSION}} · Windows x64
+
+安装：
+1. 必须先完整解压 ZIP，不能在压缩包预览窗口中直接运行。
+2. 双击“Install CUKTECH Screen Controller.cmd”。
+3. 安装完成后，从开始菜单打开 CUKTECH Screen Controller。
+4. Windows Defender 首次询问网络权限时，只允许“专用网络”。
+5. 可从“设置 → 应用”或开始菜单中的卸载入口移除软件。
+
+功能：
+- 与 macOS App 相同的画面预览、图片/GIF 推送、适配方式、Bridge 状态、
+  登录自动启动、新手检测和 OTA 票据交接。
+- 自动读取 Windows 上已登录的 Codex 与 Claude Desktop 额度。
+- AP01 与电脑必须处于同一个未开启客户端隔离的局域网。
+- 日常刷新写 AP01 的 /tmp RAM，不会反复刷写 Flash。
+
+完全原厂 AP01 的首次 OTA 仍需要米家登录态。Windows App 可以临时读取本机
+JSON 文件，格式参考 mi-credentials.example.json；文件不会被复制进软件，
+也不要提交到 GitHub 或发给他人。
+
+项目主页：
+https://github.com/wqytommy666/cuktech-screen-controller
+
+Windows 教程：
+https://github.com/wqytommy666/cuktech-screen-controller/blob/main/docs/WINDOWS_GUIDE.zh-CN.md
