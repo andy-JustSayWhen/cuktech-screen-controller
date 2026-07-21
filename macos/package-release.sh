@@ -3,7 +3,7 @@ set -euo pipefail
 
 HERE="${0:A:h}"
 ROOT="${HERE:h}"
-VERSION="${1:-0.2.1}"
+VERSION="${1:-0.2.2}"
 STAGE="$ROOT/dist/CUKTECH-Screen-Controller-$VERSION"
 RUNTIME="$STAGE/Runtime"
 ZIP="$ROOT/dist/CUKTECH-Screen-Controller-v$VERSION-macOS-arm64.zip"
@@ -122,8 +122,8 @@ sleep 2
 INSTALL
 
 chmod +x "$STAGE/Install CUKTECH Screen Controller.command"
-cat > "$STAGE/先读我.txt" <<'TXT'
-CUKTECH Screen Controller 0.2.1
+cat > "$STAGE/先读我.txt" <<TXT
+CUKTECH Screen Controller $VERSION
 
 1. 双击“Install CUKTECH Screen Controller.command”。
 2. 若 macOS 阻止打开，请右键安装程序并选择“打开”。
@@ -131,10 +131,15 @@ CUKTECH Screen Controller 0.2.1
 4. 安装完成后，应用位于 ~/Applications。
 5. 第一次打开会自动显示“新手引导”。
 6. Claude Desktop 与官方 Codex/ChatGPT App 需提前登录。
-7. Mac 与 AP01 必须处于同一个未隔离的 Wi-Fi。
+7. Mac 与 AP01 必须处于同一个非访客、未隔离局域网。
+8. AP01 需要先在米家完成配网并显示在线，首次部署期间保持稳定供电。
+9. 日常画面通过 Wi-Fi/LAN 传输，不需要 USB 数据线。
 
 完整零基础教程：
 https://github.com/wqytommy666/cuktech-screen-controller/blob/main/docs/BEGINNER_GUIDE.zh-CN.md
+
+安装前准备与联网说明：
+https://github.com/wqytommy666/cuktech-screen-controller/blob/main/docs/PREPARATION_CHECKLIST.zh-CN.md
 
 日常画面刷新只写 AP01 的 /tmp RAM 槽位，不会反复刷写 Flash。
 TXT

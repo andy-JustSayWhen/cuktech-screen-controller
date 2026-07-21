@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: python3 -m venv .venv
       - run: .venv/bin/python -m pip install Pillow
-      - run: CUKTECH_PORTABLE=1 CUKTECH_VERSION=0.2.1 CUKTECH_BUILD=3 ./macos/build-app.sh
+      - run: CUKTECH_PORTABLE=1 CUKTECH_VERSION=0.2.2 CUKTECH_BUILD=4 ./macos/build-app.sh
       - run: codesign --verify --deep --strict 'dist/CUKTECH Screen Controller.app'
       - run: |
           test "$(otool -l 'dist/CUKTECH Screen Controller.app/Contents/MacOS/AP01ScreenController' | awk '/minos/{print $2; exit}')" = "14.0"

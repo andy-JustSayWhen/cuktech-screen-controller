@@ -5,9 +5,17 @@ This guide is for people who do not normally use Terminal or write code.
 ## Before you begin
 
 Prepare an Apple Silicon Mac running macOS 14 or later. This includes 2024,
-2025, and 2026 Macs and macOS versions 24, 25, and 26. Put the Mac and AP01
-on the same non-guest Wi-Fi network. For the quota dashboard, install and sign
-in to Claude Desktop and the official Codex/ChatGPT app.
+2025, and 2026 Macs and macOS versions 24, 25, and 26. Keep the AP01 powered,
+pair it in Mi Home, and put the Mac and AP01 on the same reachable, non-guest
+LAN. Allow local incoming connections to TCP port `8765`. For the quota
+dashboard, install and sign in to Claude Desktop and the official
+Codex/ChatGPT app. See the full [preparation checklist](PREPARATION_CHECKLIST.md).
+
+The project transfers screen content over Wi-Fi/LAN, not USB or the base
+contacts. Local artwork does not need internet after the loader is installed.
+Quota refreshes need internet on the Mac. A first loader installation on a
+stock screen needs both the Mac and AP01 online, with the AP01 visible in Mi
+Home and kept on stable power.
 
 If the AP01 has already shown a custom image or quota dashboard, its real-time
 loader is installed and normal updates only use RAM. A completely stock AP01

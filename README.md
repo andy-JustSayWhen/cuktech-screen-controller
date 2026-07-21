@@ -12,7 +12,7 @@
   [![Screen](https://img.shields.io/badge/Screen-320%C3%97240-159FCB)](#screen-contract)
   [![License](https://img.shields.io/badge/License-MIT-F07A32)](LICENSE)
 
-  [Beginner guide](docs/BEGINNER_GUIDE.md) · [Install the macOS app](#method-1--install-the-macos-app) · [Use with a coding agent](#method-2--give-this-repository-to-a-coding-agent)
+  [Preparation checklist](docs/PREPARATION_CHECKLIST.md) · [Beginner guide](docs/BEGINNER_GUIDE.md) · [Install the macOS app](#method-1--install-the-macos-app) · [Use with a coding agent](#method-2--give-this-repository-to-a-coding-agent)
 
   [English](README.md) · [简体中文](README.zh-CN.md) · [Visual Tutorial](docs/xiaohongshu-tutorial.zh-CN.md) · [Skill](#coding-agent-skill)
 </div>
@@ -52,6 +52,27 @@ The installer creates an isolated local runtime, installs the app in
 - Mac and AP01 on the same non-isolated Wi-Fi network;
 - Claude Desktop and the official Codex app already signed in for quota mode;
 - an internet connection during first install for the Python dependencies.
+
+### Network and device preparation
+
+| Scenario | AP01 / charging station | Mac | Internet required? |
+| --- | --- | --- | --- |
+| Already-patched screen showing local artwork | Powered and connected to the home LAN | Same reachable LAN with Bridge running | No; local LAN is enough |
+| Claude / Codex quota dashboard | Powered and connected to the home LAN | Same LAN with the official apps signed in | **Mac: yes**, to refresh quota data |
+| First loader installation on a stock screen | Paired and online in Mi Home, with stable power | Internet access and the same reachable LAN | **AP01 and Mac: yes** |
+
+- Normal screen delivery uses **Wi-Fi/LAN**, not USB or the base contacts;
+- do not use a guest network, and disable AP/client isolation. Ethernet on the
+  Mac is fine when it can reach the AP01 on the same LAN;
+- allow incoming connections if macOS asks. VPNs and firewalls must allow local
+  LAN access to TCP port `8765`;
+- before a first loader installation, have the AP01 owner's Mi Home account
+  available and verify model `njcuk.enstor.ap01` and firmware `1.0.2_0031`;
+- keep the Mac awake and logged in for live refreshes. The AP01 retains the last
+  successful frame while the Mac is asleep or offline;
+- reserve the Mac's DHCP address in the router to avoid later IP changes.
+
+See the full [preparation and connectivity checklist](docs/PREPARATION_CHECKLIST.md).
 
 The app can show bridge status, switch between the quota dashboard and custom
 artwork, preserve animated GIFs, select `contain` / `cover` / `stretch`, and

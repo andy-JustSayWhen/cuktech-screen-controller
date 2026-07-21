@@ -31,8 +31,8 @@ private let agentSetupPrompt = """
 https://github.com/wqytommy666/cuktech-screen-controller
 
 开始前先阅读 AGENTS.md、README.zh-CN.md 和 skills/cuktech-ap01-screen-kit/SKILL.md，先运行 ./macos/diagnose.sh，只做只读检查，不要直接刷固件。
-我没有编程基础，请一次只告诉我一个需要人工完成的动作。请配置软件与 Bridge，验证 /health、320×240 GIF89a 和 AP01 GET /screen.gif 200，并设置登录自动启动。
-如果实时加载器已经存在，不要 OTA；如果不存在，先确认型号 njcuk.enstor.ap01 和固件 1.0.2_0031，真正安装前再次向我确认。日常更新只使用 /tmp RAM。
+我没有编程基础，请一次只告诉我一个需要人工完成的动作。先确认 AP01 稳定供电、已在米家配网并显示在线，Mac 与 AP01 位于同一非访客、非隔离局域网，VPN/防火墙允许 TCP 8765；本项目不用 USB 传图。
+请配置软件与 Bridge，验证 /health、320×240 GIF89a 和 AP01 GET /screen.gif 200，并设置登录自动启动。如果实时加载器已经存在，不要 OTA；如果不存在，先确认型号 njcuk.enstor.ap01 和固件 1.0.2_0031，真正安装前再次向我确认。日常更新只使用 /tmp RAM。
 """
 
 private func runProcess(_ executable: String, _ arguments: [String]) throws -> String {
@@ -50,6 +50,15 @@ private func runProcess(_ executable: String, _ arguments: [String]) throws -> S
         throw NSError(domain: "AP01Controller", code: Int(process.terminationStatus), userInfo: [NSLocalizedDescriptionKey: output])
     }
     return output
+}
+
+private func localIPv4() -> String? {
+    for interface in ["en0", "en1"] {
+        let value = (try? runProcess("/usr/sbin/ipconfig", ["getifaddr", interface]))?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if let value, !value.isEmpty { return value }
+    }
+    return nil
 }
 
 private func redactedNetworkText(_ text: String) -> String {
@@ -381,8 +390,7 @@ final class AP01Model: ObservableObject {
     deinit { timer?.invalidate() }
 
     func updateLocalURL() {
-        let ip = (try? runProcess("/usr/sbin/ipconfig", ["getifaddr", "en0"]))?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let ip = localIPv4()
         if let ip, !ip.isEmpty { localURL = "http://\(ip):8765/screen.gif" }
     }
 
@@ -635,8 +643,7 @@ private final class BeginnerGuideModel: ObservableObject {
                 level: codexInstalled ? .ready : .attention
             ))
 
-            let ip = (try? runProcess("/usr/sbin/ipconfig", ["getifaddr", "en0"]))?
-                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let ip = localIPv4()
             values.append(ReadinessCheck(
                 title: "Wi-Fi 局域网",
                 detail: (ip?.isEmpty == false) ? "屏幕地址：http://\(ip!):8765/screen.gif" : "没有检测到 Wi-Fi IPv4，请连接与 AP01 相同的 Wi-Fi",
@@ -705,7 +712,7 @@ struct BeginnerGuideView: View {
     private var stepsCard: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("按顺序操作").font(.headline)
-            guideStep("1", "连接网络", "Mac 与 AP01 连接同一个非访客 Wi-Fi；最好在路由器里固定 Mac 的 IP。")
+            guideStep("1", "设备通电并联网", "AP01 在米家显示在线且稳定供电；Mac 与 AP01 处于同一非访客、非隔离局域网。")
             guideStep("2", "登录账户", "需要额度时，先打开并登录 Claude Desktop 与官方 Codex/ChatGPT App。只显示图片可以跳过。")
             guideStep("3", "选择内容", "返回主界面选择额度模式，或选择 PNG/JPG/HEIC/WebP/动态 GIF 并推送。")
             guideStep("4", "等待屏幕请求", "AP01 默认约每 5 分钟请求一次。检查结果中出现 GET /screen.gif 200 即为打通。")
@@ -713,7 +720,7 @@ struct BeginnerGuideView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Label("原厂屏幕需要一次性配置", systemImage: "info.circle.fill")
                     .font(.subheadline.bold()).foregroundStyle(.orange)
-                Text("如果这块屏幕从未显示过电脑发送的内容，请把仓库链接交给 Coding Agent。Agent 会先检查型号和固件，不会直接安装。")
+                Text("如果屏幕从未显示过电脑发送的内容，请准备 AP01 所属米家账号并保持设备联网供电，再把仓库交给 Coding Agent。Agent 会先检查型号和固件，不会直接安装。")
                     .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 Button { model.copyAgentPrompt() } label: {
                     Label(model.copied ? "配置指令已复制" : "复制给 Agent 的配置指令", systemImage: model.copied ? "checkmark" : "doc.on.doc")
@@ -725,7 +732,7 @@ struct BeginnerGuideView: View {
             .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
 
             Spacer(minLength: 0)
-            Text("日常换图与额度刷新写入 AP01 的 /tmp RAM，不会反复刷 Flash。")
+            Text("画面通过 Wi-Fi/LAN 传输，不需要 USB。日常更新写入 AP01 的 /tmp RAM，不会反复刷 Flash。")
                 .font(.caption).foregroundStyle(.green)
         }
         .padding(18)

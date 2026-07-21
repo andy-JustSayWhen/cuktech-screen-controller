@@ -12,7 +12,7 @@
   [![Screen](https://img.shields.io/badge/Screen-320%C3%97240-159FCB)](#屏幕协议)
   [![License](https://img.shields.io/badge/License-MIT-F07A32)](LICENSE)
 
-  [零基础教程](docs/BEGINNER_GUIDE.zh-CN.md) · [安装 macOS 软件](#方法一安装-macos-软件) · [交给 Coding Agent 配置](#方法二把-github-仓库交给-coding-agent)
+  [安装前准备](docs/PREPARATION_CHECKLIST.zh-CN.md) · [零基础教程](docs/BEGINNER_GUIDE.zh-CN.md) · [安装 macOS 软件](#方法一安装-macos-软件) · [交给 Coding Agent 配置](#方法二把-github-仓库交给-coding-agent)
 
   [English](README.md) · [简体中文](README.zh-CN.md) · [图文教程](docs/xiaohongshu-tutorial.zh-CN.md) · [Skill](#coding-agent-与-skill)
 </div>
@@ -50,6 +50,27 @@ CUKTECH Screen Controller 提供两种使用方式。
 - Mac 与 AP01 连接同一个未开启客户端隔离的 Wi-Fi；
 - 显示额度时，需要提前登录 Claude Desktop 与官方 Codex App；
 - 首次安装 Python 依赖时需要联网。
+
+### 联网和设备准备（务必先看）
+
+| 使用场景 | AP01 / 充电站 | Mac | 是否需要互联网 |
+| --- | --- | --- | --- |
+| 已改造屏幕，显示本地图片 | 保持供电并连接家庭局域网 | 与 AP01 同一局域网，Bridge 运行 | 不需要；局域网正常即可 |
+| 显示 Claude / Codex 额度 | 保持供电并连接家庭局域网 | 同一局域网，官方客户端已登录 | **Mac 需要**，用于读取最新额度 |
+| 完全原厂屏首次安装加载器 | 在米家完成配网并显示在线，安装期间稳定供电 | 能访问互联网和同一局域网 | **AP01 与 Mac 都需要** |
+
+- 本项目日常通过 **Wi-Fi/LAN** 传图，不通过 USB 或底座触点传输显示内容；
+- 不能使用访客网络，并应关闭路由器的 AP/客户端隔离；Mac 使用网线也可以，
+  只要和 AP01 处于能够互相访问的同一局域网；
+- 如果 macOS 询问是否允许接收网络连接，请选择“允许”；VPN/代理需要允许访问
+  本地局域网和 TCP `8765` 端口；
+- 首次加载器安装前，需要准备 AP01 所属的米家账号并确认型号
+  `njcuk.enstor.ap01`、固件 `1.0.2_0031`。不要拔电、重置或让设备离线；
+- 实时画面依赖 Mac 保持开机、用户已登录且 Bridge 正在运行。Mac 睡眠或关机时，
+  AP01 会保留最后一次成功画面，但不会继续更新；
+- 建议在路由器中为 Mac 设置 DHCP 地址保留，避免重启后局域网 IP 变化。
+
+完整清单请看：[安装前准备与联网说明](docs/PREPARATION_CHECKLIST.zh-CN.md)。
 
 软件支持查看 Bridge 状态、切换额度面板与自定义画面、保留动态 GIF、选择
 “完整显示 / 铺满裁切 / 拉伸”，并通过图形界面完成 BFNP 固件预检与临时 OTA

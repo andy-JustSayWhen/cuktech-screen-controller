@@ -8,8 +8,8 @@ if [[ "${CUKTECH_PORTABLE:-0}" == "1" ]]; then
     RUNTIME_ROOT=""
 fi
 LAUNCH_LABEL="${CUKTECH_LAUNCH_LABEL:-io.github.wqytommy666.cuktech-screen-controller.bridge}"
-APP_VERSION="${CUKTECH_VERSION:-0.2.1}"
-APP_BUILD="${CUKTECH_BUILD:-3}"
+APP_VERSION="${CUKTECH_VERSION:-0.2.2}"
+APP_BUILD="${CUKTECH_BUILD:-4}"
 ICON_PYTHON="${CUKTECH_PYTHON:-$ROOT/.venv/bin/python}"
 if [[ ! -x "$ICON_PYTHON" ]]; then
     ICON_PYTHON="$(command -v python3 || true)"

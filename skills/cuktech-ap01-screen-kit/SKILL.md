@@ -43,6 +43,13 @@ artifacts into a shareable project.
   images use two slow frames, while source GIFs may retain up to eight frames.
 - Keep rows `0..39` empty when retaining the stock clock/date overlay.
 - Keep the Mac and AP01 on the same non-isolated LAN and reserve the Mac IP.
+- Treat Wi-Fi/LAN as the content path; do not ask the user to prepare a USB
+  data cable or rely on the charging-base contacts.
+- For first-loader work, require stable AP01 power, Mi Home pairing/online
+  status, internet access, and the owner's Xiaomi account. For ordinary local
+  artwork, internet is optional after the loader is installed. Quota mode
+  still needs internet access on the Mac.
+- Ensure macOS firewall/VPN settings allow inbound LAN access to TCP 8765.
 - Treat the firmware patch as specific to model `njcuk.enstor.ap01`, firmware
   `1.0.2_0031`; do not reuse its offsets on another build.
 - Start the bridge before installing and require a logged AP01

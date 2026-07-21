@@ -24,11 +24,20 @@ operations below as different workflows:
 
 3. Confirm all of the following with the user:
    - macOS 14+ and Apple Silicon for the packaged app;
+   - the AP01 is powered, paired in Mi Home, and shown online before any
+     first-loader workflow;
    - Mac and AP01 are on the same Wi-Fi without client/AP isolation;
+   - VPN/firewall rules permit LAN access to TCP 8765 and the Mac LAN address
+     is preferably reserved with DHCP;
    - Claude Desktop and the official Codex/ChatGPT app are installed and
      signed in when quota display is requested;
    - whether this AP01 already requests `GET /screen.gif` from the Mac;
    - exact AP01 model and firmware before any loader work.
+
+   Explain the network requirement precisely: already-patched local artwork
+   needs only a working LAN; quota refreshes need internet on the Mac; a
+   first-loader installation needs both the AP01 and Mac online. USB and the
+   charging-base contacts are not the screen-content transport used here.
 4. For a source/agent installation, run:
 
    ```bash
