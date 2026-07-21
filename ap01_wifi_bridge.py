@@ -15,6 +15,7 @@ import json
 import os
 import socket
 import subprocess
+import sys
 import threading
 import time
 from dataclasses import asdict
@@ -216,28 +217,50 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def lan_ip() -> str:
-    # A VPN can own the default route while the AP01 remains on Wi-Fi.  Prefer
-    # macOS's physical Wi-Fi address so the printed URL is reachable by AP01.
-    for interface in ("en0", "en1"):
-        try:
-            result = subprocess.run(
-                ["ipconfig", "getifaddr", interface],
-                capture_output=True,
-                text=True,
-                timeout=2,
-                check=False,
-            )
-            candidate = result.stdout.strip()
-            if candidate and ipaddress.ip_address(candidate).is_private:
-                return candidate
-        except (OSError, subprocess.SubprocessError, ValueError):
-            pass
+    override = os.environ.get("AP01_LAN_IP", "").strip()
+    try:
+        if override and ipaddress.ip_address(override).is_private:
+            return override
+    except ValueError:
+        pass
+
+    # A VPN can own the default route while the AP01 remains on Wi-Fi. Prefer
+    # macOS's physical address first, then use the portable socket route on
+    # Windows/Linux.
+    if sys.platform == "darwin":
+        for interface in ("en0", "en1"):
+            try:
+                result = subprocess.run(
+                    ["ipconfig", "getifaddr", interface],
+                    capture_output=True,
+                    text=True,
+                    timeout=2,
+                    check=False,
+                )
+                candidate = result.stdout.strip()
+                if candidate and ipaddress.ip_address(candidate).is_private:
+                    return candidate
+            except (OSError, subprocess.SubprocessError, ValueError):
+                pass
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         sock.connect(("192.0.2.1", 80))
-        return str(sock.getsockname()[0])
+        candidate = str(sock.getsockname()[0])
+        if ipaddress.ip_address(candidate).is_private:
+            return candidate
+    except (OSError, ValueError):
+        pass
     finally:
         sock.close()
+
+    try:
+        for item in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            candidate = str(item[4][0])
+            if ipaddress.ip_address(candidate).is_private:
+                return candidate
+    except (OSError, ValueError):
+        pass
+    return "127.0.0.1"
 
 
 def main() -> int:

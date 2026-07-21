@@ -2,6 +2,11 @@
 
 ## Data sources
 
+The bundled automatic account collector currently targets macOS because it
+reads Claude Desktop's macOS cookie store/Keychain and the official app bundle.
+On Windows, the renderer itself works with fallback/manual/other API data, but
+do not claim that the current code automatically reads the Windows Claude app.
+
 - Query Codex through the signed-in official `codex app-server` API.
 - Query Claude through Claude Desktop's encrypted Electron cookies and the
   official Claude usage endpoint.

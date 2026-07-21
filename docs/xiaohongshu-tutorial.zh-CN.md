@@ -4,6 +4,9 @@
 FDS 上传与命令参数时，请以项目根目录的
 [中文 README](../README.zh-CN.md) 为准。
 
+图片使用 Mac 作为示意，但 Python/Coding Agent 工具链也支持 Windows；只有
+当前原生图形 App 与自动读取 Claude/Codex 官方客户端额度的集成仅提供 macOS 版本。
+
 ## 01 · 项目效果
 
 ![酷态科 10 号万向屏改造成 Wi-Fi 实时信息屏](images/xiaohongshu-tutorial/01-cover.jpg)

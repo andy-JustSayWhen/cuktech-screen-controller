@@ -3,7 +3,7 @@
 
 The default probe sends only a standard 32-byte MiIO discovery packet and TCP
 SYN/connect attempts.  ``--outbound-test`` additionally asks the already-bound
-AP01, through Xiaomi cloud RPC, to send one 64-byte UDP iperf packet to this Mac.
+AP01, through Xiaomi cloud RPC, to send one 64-byte UDP iperf packet to this computer.
 No device property, Wi-Fi credential, firmware, or flash partition is changed.
 """
 
@@ -223,8 +223,12 @@ def main() -> None:
         help="include other MiIO broadcast responders in JSON",
     )
     parser.add_argument("--broadcast", help="subnet broadcast address; default target /24 .255")
-    parser.add_argument("--interface", default="en0", help="Mac LAN interface (default: en0)")
-    parser.add_argument("--local-ip", help="Mac LAN IPv4 for --outbound-test")
+    parser.add_argument(
+        "--interface",
+        default="en0",
+        help="macOS LAN interface; Windows normally uses the portable fallback",
+    )
+    parser.add_argument("--local-ip", help="computer LAN IPv4 for --outbound-test")
     parser.add_argument("--timeout", type=float, default=1.5)
     parser.add_argument(
         "--tcp-ports",
@@ -234,7 +238,7 @@ def main() -> None:
     parser.add_argument(
         "--outbound-test",
         action="store_true",
-        help="cloud-trigger one 64-byte AP01-to-Mac UDP packet",
+        help="cloud-trigger one 64-byte AP01-to-computer UDP packet",
     )
     parser.add_argument("--listen-port", type=int, default=45888)
     parser.add_argument("--json-out", type=Path)
@@ -299,18 +303,18 @@ def main() -> None:
         conclusion = "AP01 的本地 MiIO/UDP 54321 单播可达，可以继续测试离线本地 RPC。"
     elif target_broadcast:
         conclusion = (
-            "AP01 的 MiIO/UDP 54321 监听器确实在运行并响应广播，但 Mac→AP01 的单播被 "
-            "ARP/跨频段/无线客户端隔离阻断。先关闭路由器的 AP/访客/IoT 隔离，或把 Mac "
+            "AP01 的 MiIO/UDP 54321 监听器确实在运行并响应广播，但电脑→AP01 的单播被 "
+            "ARP/跨频段/无线客户端隔离阻断。先关闭路由器的 AP/访客/IoT 隔离，或把电脑 "
             "与 AP01 放到同一 2.4 GHz BSSID；也可临时设置静态 ARP 后复测。"
         )
     elif direct == "os_error":
-        conclusion = "Mac 到 AP01 的新建入站路径在二层/路由层不可达，或设备拒绝 ARP；尚未收到本地 MiIO 响应。"
+        conclusion = "电脑到 AP01 的新建入站路径在二层/路由层不可达，或设备拒绝 ARP；尚未收到本地 MiIO 响应。"
     else:
         conclusion = "AP01 未响应本地 MiIO/UDP 54321；可能未启用本地监听，也可能被无线隔离策略过滤。"
     if args.outbound_test:
         packets = report["outbound_test"]["capture"]["packets"]
         conclusion += (
-            f" 受控出站测试收到 {packets} 个包，证明 AP01→Mac 的局域网出站路径可用。"
+            f" 受控出站测试收到 {packets} 个包，证明 AP01→电脑的局域网出站路径可用。"
             if packets
             else " 受控出站测试也未收到 AP01 数据。"
         )

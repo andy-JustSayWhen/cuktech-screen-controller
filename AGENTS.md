@@ -9,47 +9,63 @@ operations below as different workflows:
   the exact supported model/build.  This writes Flash and requires explicit
   user confirmation.
 
-## Start here on every new Mac
+## Start here on every new computer
 
 1. Read `README.zh-CN.md` (or `README.md`) and
    `skills/cuktech-ap01-screen-kit/SKILL.md`.
-2. Run only read-only checks first:
+2. Detect the host operating system and run only read-only checks first:
 
    ```bash
+   # macOS
    ./macos/diagnose.sh
+
+   # Windows PowerShell
+   powershell -ExecutionPolicy Bypass -File scripts/diagnose-windows.ps1
    ```
 
    A non-zero result before installation simply means prerequisites are still
    missing; read the printed checklist and continue with the applicable setup.
 
 3. Confirm all of the following with the user:
-   - macOS 14+ and Apple Silicon for the packaged app;
+   - macOS 14+ and Apple Silicon only for the packaged native app; the
+     Python/coding-agent toolkit also supports Windows;
    - the AP01 is powered, paired in Mi Home, and shown online before any
      first-loader workflow;
-   - Mac and AP01 are on the same Wi-Fi without client/AP isolation;
-   - VPN/firewall rules permit LAN access to TCP 8765 and the Mac LAN address
+   - the Bridge computer and AP01 are on the same LAN without client/AP isolation;
+   - VPN/firewall rules permit LAN access to TCP 8765 and the computer LAN address
      is preferably reserved with DHCP;
    - Claude Desktop and the official Codex/ChatGPT app are installed and
-     signed in when quota display is requested;
-   - whether this AP01 already requests `GET /screen.gif` from the Mac;
+     signed in when automatic quota display is requested on macOS; the current
+     account-discovery integration is not the Windows custom-art path;
+   - whether this AP01 already requests `GET /screen.gif` from the Bridge computer;
    - exact AP01 model and firmware before any loader work.
 
    Explain the network requirement precisely: already-patched local artwork
-   needs only a working LAN; quota refreshes need internet on the Mac; a
-   first-loader installation needs both the AP01 and Mac online. USB and the
+   needs only a working LAN; automatic quota refreshes need internet on the
+   macOS host; a first-loader installation needs the AP01 and installation
+   environment online. USB and the
    charging-base contacts are not the screen-content transport used here.
-4. For a source/agent installation, run:
+4. For a source/agent installation, run the platform-appropriate setup:
 
    ```bash
    ./scripts/setup-macos.sh
+
+   # Windows PowerShell
+   powershell -ExecutionPolicy Bypass -File scripts/setup-windows.ps1
    ```
 
 5. Verify both endpoints and the device request:
 
    ```bash
+   # macOS
    curl --noproxy '*' http://127.0.0.1:8765/health
    curl --noproxy '*' -I http://127.0.0.1:8765/screen.gif
    ./macos/diagnose.sh
+
+   # Windows PowerShell
+   Invoke-RestMethod http://127.0.0.1:8765/health
+   Invoke-WebRequest -Method Head http://127.0.0.1:8765/screen.gif
+   .\scripts\diagnose-windows.ps1
    ```
 
 ## Choose the smallest workflow

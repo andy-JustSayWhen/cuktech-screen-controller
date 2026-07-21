@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -24,9 +26,12 @@ def main() -> int:
         raise SystemExit(f"destination is not empty: {output}; pass --force to merge")
     shutil.copytree(template, output, dirs_exist_ok=existed or args.force)
     if args.venv:
-        subprocess.run(["python3", "-m", "venv", str(output / ".venv")], check=True)
+        subprocess.run([sys.executable, "-m", "venv", str(output / ".venv")], check=True)
+        venv_python = output / ".venv" / (
+            "Scripts/python.exe" if os.name == "nt" else "bin/python"
+        )
         subprocess.run(
-            [str(output / ".venv" / "bin" / "python"), "-m", "pip", "install", "-r", str(output / "requirements.txt")],
+            [str(venv_python), "-m", "pip", "install", "-r", str(output / "requirements.txt")],
             check=True,
         )
     print(output)

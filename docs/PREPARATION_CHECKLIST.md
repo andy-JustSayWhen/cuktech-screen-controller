@@ -17,23 +17,25 @@ stock AP01.
 - A CUKTECH 10 charging station and its detachable AP01 display;
 - stable AP01 power, especially during a first loader installation;
 - model `njcuk.enstor.ap01` on firmware `1.0.2_0031` for the published loader;
-- an Apple Silicon Mac running macOS 14 or later. The current package is
-  `arm64`; Intel Macs are not supported;
+- either an Apple Silicon Mac for the native GUI, or a Windows PC with Python
+  3.9+ for the coding-agent/Python workflow. The native package is macOS
+  `arm64`; the [Windows toolkit workflow](WINDOWS_GUIDE.md) does not use it;
 - no USB data cable is required. Normal content delivery uses Wi-Fi/LAN rather
   than USB or the charging-base contacts.
 
 ## 3. LAN preparation
 
 Pair the AP01/charging station in Mi Home and make sure it is online. Put the
-Mac and AP01 on the same reachable LAN, not a guest network. Disable AP/client
-isolation, allow incoming connections when macOS asks, and allow TCP port
-`8765` through VPN/firewall software. Ethernet on the Mac is fine if it can
+Bridge computer and AP01 on the same reachable LAN, not a guest network.
+Disable AP/client isolation, allow incoming connections when macOS asks (or
+allow Python on Windows Private networks), and allow TCP port `8765` through
+VPN/firewall software. Ethernet is fine if it can
 reach the AP01 across the same LAN/VLAN.
 
-Reserve the Mac's LAN address with DHCP. The AP01 must be able to request:
+Reserve the Bridge computer's LAN address with DHCP. The AP01 must be able to request:
 
 ```text
-http://<MAC_LAN_IP>:8765/screen.gif
+http://<COMPUTER_LAN_IP>:8765/screen.gif
 ```
 
 The end-to-end success signal is a logged request such as:
@@ -44,10 +46,10 @@ AP01_IP "GET /screen.gif HTTP/1.0" 200
 
 ## 4. Internet requirements
 
-| Workflow | Mac internet | AP01 internet | Local LAN |
+| Workflow | Bridge computer internet | AP01 internet | Local LAN |
 | --- | --- | --- | --- |
 | Local artwork on an already-patched display | Only for initial download | No | Required |
-| Claude/Codex live quotas | Required for quota refreshes | No, but it must reach the Mac | Required |
+| Claude/Codex live quotas (current macOS integration) | Required for quota refreshes | No, but it must reach the Bridge | Required |
 | First loader installation on a stock display | Required | Required and online in Mi Home | Required |
 
 If the WAN fails but the LAN remains available, local artwork can still work.
@@ -67,21 +69,21 @@ of GitHub.
 
 ## 6. Continuous operation
 
-The installer creates a per-user login service. Keep the Mac awake and the user
+The macOS installer creates a per-user login service; Windows may use Task
+Scheduler. Keep the Bridge computer awake and the user
 logged in for live updates. The AP01 retains the last successful screen while
-the Mac sleeps or is offline, but it cannot refresh. Its normal poll interval
+the Bridge computer sleeps or is offline, but it cannot refresh. Its normal poll interval
 is about five minutes, so a pushed image may not appear immediately.
 
 ## 7. Final checklist
 
-- [ ] Apple Silicon Mac with macOS 14+
+- [ ] Chosen platform: Apple Silicon macOS app, or Windows/Python agent toolkit
 - [ ] AP01 on stable power and online in Mi Home
 - [ ] Same non-guest, non-isolated LAN
-- [ ] Local TCP 8765 allowed by macOS/VPN/firewall
-- [ ] Mac DHCP reservation configured if possible
+- [ ] Local TCP 8765 allowed by macOS/Windows/VPN/firewall
+- [ ] Bridge-computer DHCP reservation configured if possible
 - [ ] Official Claude/Codex clients signed in for quota mode
 - [ ] Stock loader work verified as `njcuk.enstor.ap01` / `1.0.2_0031`
 - [ ] User understands daily updates use `/tmp` RAM and do not reinstall firmware
 
 Continue with the [beginner guide](BEGINNER_GUIDE.md) after these checks pass.
-

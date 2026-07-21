@@ -6,10 +6,10 @@ different version; port the reverse-engineered hooks first.
 
 ## Prerequisites
 
-- Log into Mi Home, Claude Desktop, Codex, and the AP01's Xiaomi account on the
-  Mac that will run the bridge.
-- Put the Mac and AP01 on the same non-isolated LAN.
-- Reserve the Mac's IPv4 address in DHCP before building the firmware URL.
+- Log into the required services on the computer that will run the Bridge.
+  Automatic Claude/Codex account collection is currently macOS-specific.
+- Put the Bridge computer and AP01 on the same non-isolated LAN.
+- Reserve the computer's IPv4 address in DHCP before building the firmware URL.
 - Install Python dependencies plus `riscv64-elf-gcc` and
   `riscv64-elf-binutils`.
 
@@ -30,14 +30,14 @@ Build a shortened compatibility image containing the fallback GIF:
   --output artifacts/ap01-1.0.2_0031-screen-compat.bin
 ```
 
-Inject the RAM-backed HTTP loader using the Mac's actual LAN IP:
+Inject the RAM-backed HTTP loader using the Bridge computer's actual LAN IP:
 
 ```bash
 .venv/bin/python ap01_realtime_patch.py \
   --input artifacts/ap01-1.0.2_0031-screen-compat.bin \
   --output artifacts/ap01-1.0.2_0031-screen-realtime.bin \
   --build-dir artifacts/realtime-build \
-  --url http://MAC_LAN_IP:8765/screen.gif \
+  --url http://COMPUTER_LAN_IP:8765/screen.gif \
   --refresh-seconds 300
 ```
 

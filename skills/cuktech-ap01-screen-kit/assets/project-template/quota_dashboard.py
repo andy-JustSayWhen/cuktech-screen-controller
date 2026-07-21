@@ -433,12 +433,14 @@ def _font(size: int, bold: bool = False):
         [
             "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
             "/System/Library/Fonts/SFCompact.ttf",
+            "C:/Windows/Fonts/arialbd.ttf",
             "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
         ]
         if bold
         else [
             "/System/Library/Fonts/SFNS.ttf",
             "/System/Library/Fonts/Supplemental/Arial.ttf",
+            "C:/Windows/Fonts/arial.ttf",
             "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         ]
     )
@@ -464,6 +466,8 @@ def _condensed_font(size: int):
     candidates = (
         "/System/Library/Fonts/Supplemental/DIN Condensed Bold.ttf",
         "/System/Library/Fonts/Supplemental/Arial Narrow Bold.ttf",
+        "C:/Windows/Fonts/arialnb.ttf",
+        "C:/Windows/Fonts/arialbd.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed-Bold.ttf",
     )
     for candidate in candidates:
@@ -484,6 +488,8 @@ def _cjk_font(size: int, bold: bool = False):
         [
             "/System/Library/Fonts/STHeiti Medium.ttc",
             "/System/Library/Fonts/Hiragino Sans GB.ttc",
+            "C:/Windows/Fonts/msyhbd.ttc",
+            "C:/Windows/Fonts/msyh.ttc",
             "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
             "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
             "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
@@ -492,6 +498,7 @@ def _cjk_font(size: int, bold: bool = False):
         else [
             "/System/Library/Fonts/Hiragino Sans GB.ttc",
             "/System/Library/Fonts/STHeiti Light.ttc",
+            "C:/Windows/Fonts/msyh.ttc",
             "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
             "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
         ]

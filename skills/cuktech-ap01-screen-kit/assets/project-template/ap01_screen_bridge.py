@@ -7,7 +7,10 @@ import argparse
 import hashlib
 import ipaddress
 import json
+import os
+import socket
 import subprocess
+import sys
 import threading
 import time
 from http import HTTPStatus
@@ -21,19 +24,51 @@ RAM_GIF_MAX = 256 * 1024
 
 
 def lan_ip() -> str:
-    for interface in ("en0", "en1"):
-        completed = subprocess.run(
-            ["ipconfig", "getifaddr", interface],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        candidate = completed.stdout.strip()
-        try:
-            if candidate and ipaddress.ip_address(candidate).is_private:
+    override = os.environ.get("AP01_LAN_IP", "").strip()
+    try:
+        if override and ipaddress.ip_address(override).is_private:
+            return override
+    except ValueError:
+        pass
+
+    # macOS exposes the physical interface address directly. Windows uses the
+    # same command name for a different program, so never invoke it there.
+    if sys.platform == "darwin":
+        for interface in ("en0", "en1"):
+            try:
+                completed = subprocess.run(
+                    ["ipconfig", "getifaddr", interface],
+                    capture_output=True,
+                    text=True,
+                    timeout=2,
+                    check=False,
+                )
+                candidate = completed.stdout.strip()
+                if candidate and ipaddress.ip_address(candidate).is_private:
+                    return candidate
+            except (OSError, subprocess.SubprocessError, ValueError):
+                pass
+
+    # UDP connect chooses the local route without sending an application data
+    # packet. This works on macOS, Windows and Linux, even when DNS is absent.
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        sock.connect(("192.0.2.1", 80))
+        candidate = str(sock.getsockname()[0])
+        if ipaddress.ip_address(candidate).is_private:
+            return candidate
+    except (OSError, ValueError):
+        pass
+    finally:
+        sock.close()
+
+    try:
+        for item in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            candidate = str(item[4][0])
+            if ipaddress.ip_address(candidate).is_private:
                 return candidate
-        except ValueError:
-            pass
+    except (OSError, ValueError):
+        pass
     return "127.0.0.1"
 
 

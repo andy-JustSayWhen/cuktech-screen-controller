@@ -2,6 +2,10 @@
 
 这份教程写给完全没有编程基础的用户。正常使用时不需要写代码，也不需要每次刷固件。
 
+> 本页“直接安装软件”部分讲的是 macOS 原生 App。Windows 用户可以使用同一套
+> AP01 功能，但需要采用 Coding Agent/Python 方式，请直接打开
+> [Windows 使用指南](WINDOWS_GUIDE.zh-CN.md)。
+
 ## 先判断你属于哪一种情况
 
 ### 情况 A：万向屏已经显示过自定义画面或 Claude/Codex 额度
@@ -16,7 +20,7 @@ Wi-Fi 写入屏幕的临时内存，不会反复刷 Flash。
 
 ## 安装前准备清单
 
-请提前准备好：
+使用原生图形软件时，请提前准备好：
 
 - Apple Silicon Mac（包括 2024、2025、2026 款），系统为 macOS 14 或更高版本；
 - macOS 24、25、26 以及后续版本都可以使用；
@@ -40,6 +44,9 @@ Wi-Fi 写入屏幕的临时内存，不会反复刷 Flash。
 - **Mac 睡眠或关机：** AP01 保留最后一次画面，但实时内容会暂停更新。
 
 ## 方法一：直接安装软件（最简单）
+
+本方法仅适用于 macOS 原生 App。Windows 请跳到“交给 Coding Agent”，并让
+Agent 阅读 `docs/WINDOWS_GUIDE.zh-CN.md`。
 
 ### 第 1 步：下载安装包
 
@@ -103,7 +110,9 @@ https://github.com/wqytommy666/cuktech-screen-controller
 skills/cuktech-ap01-screen-kit/SKILL.md。先运行只读诊断，不要直接刷固件。
 
 我没有编程基础，请一次只告诉我一个需要人工完成的动作，并解释我应该看到什么。
-请检查 Mac、Python、Claude/Codex 登录、局域网、Bridge 和 AP01 请求记录。
+请先识别当前是 macOS 还是 Windows，再检查 Python、局域网、Bridge 和 AP01
+请求记录；macOS 额度模式还要检查 Claude/Codex 登录状态。Windows 不要运行
+macos/ 目录中的脚本，请按 docs/WINDOWS_GUIDE.zh-CN.md 操作。
 如果设备已经请求 GET /screen.gif，就不要进行 OTA，直接完成软件和自动启动配置。
 只有确认设备仍为原厂、型号为 njcuk.enstor.ap01、固件为 1.0.2_0031 时，才准备
 一次性实时加载器；真正安装前必须再次向我确认。日常图片和额度刷新只使用 /tmp RAM。

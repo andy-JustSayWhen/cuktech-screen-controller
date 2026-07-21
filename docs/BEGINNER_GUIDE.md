@@ -2,6 +2,10 @@
 
 This guide is for people who do not normally use Terminal or write code.
 
+> The direct native-app steps on this page are for macOS. Windows users can
+> use the same AP01 screen toolkit through a coding agent/Python; start with
+> the [Windows guide](WINDOWS_GUIDE.md).
+
 ## Before you begin
 
 Prepare an Apple Silicon Mac running macOS 14 or later. This includes 2024,
@@ -22,6 +26,9 @@ loader is installed and normal updates only use RAM. A completely stock AP01
 needs the supported loader installed once; use the coding-agent route below.
 
 ## Install the app
+
+This native GUI method is macOS-only. On Windows, use the coding-agent route
+and have the agent read `docs/WINDOWS_GUIDE.md`.
 
 1. Download the latest arm64 ZIP from
    [GitHub Releases](https://github.com/wqytommy666/cuktech-screen-controller/releases/latest).
@@ -46,8 +53,10 @@ Use this prompt:
 
 ```text
 Read AGENTS.md, README.md, and skills/cuktech-ap01-screen-kit/SKILL.md first.
-I am not a programmer, so ask for only one manual action at a time. Run the
-read-only diagnostic before making changes. Configure the app/Bridge, verify
+I am not a programmer, so ask for only one manual action at a time. Detect
+whether this computer runs macOS or Windows and run the matching read-only
+diagnostic before making changes. On Windows, read docs/WINDOWS_GUIDE.md and
+do not run scripts under macos/. Configure the app/Bridge, verify
 /health, validate the 320x240 GIF89a, and show a logged AP01 GET /screen.gif
 200. If the real-time loader is already installed, do not use OTA. If it is
 missing, verify the exact supported AP01 model and firmware and ask me again
@@ -56,11 +65,13 @@ immediately before the one-time installation. Daily updates must use /tmp RAM.
 
 ## If something stops updating
 
-Open the in-app beginner guide and rerun its checks, or ask the agent:
+On macOS, open the in-app beginner guide and rerun its checks. On either
+platform, ask the agent to detect the OS and repair the Bridge without OTA.
+For Windows, use `scripts/diagnose-windows.ps1`; for macOS, use:
 
 ```text
 Run ./macos/diagnose.sh and repair the Bridge without performing OTA.
 ```
 
-The Mac must remain logged in and connected to the same Wi-Fi. The AP01 keeps
-the last successful screen while the Mac is offline.
+The Bridge computer must remain logged in and connected to the same reachable
+LAN. The AP01 keeps the last successful screen while that computer is offline.

@@ -18,6 +18,10 @@ python3 "<skill-root>/scripts/create_project.py" ./cuktech-ap01-screen \
 cd ./cuktech-ap01-screen
 ```
 
+On Windows, run the same script with `py -3`; it automatically uses
+`.venv\Scripts\python.exe`. The native SwiftUI controller is macOS-only, while
+the project template, image converter and LAN Bridge support macOS and Windows.
+
 Do not copy firmware, cookies, tokens, signed URLs, device IDs, or generated
 artifacts into a shareable project.
 
@@ -28,8 +32,9 @@ artifacts into a shareable project.
    asset, atomically replace the served GIF, and avoid OTA.
 2. **Create or restyle a Claude/Codex quota panel**: read
    [references/quota-dashboard.md](references/quota-dashboard.md). Fetch the
-   signed-in official accounts, edit `render_master()`, run tests, and serve
-   the lightweight GIF.
+   signed-in official accounts on macOS, edit `render_master()`, run tests, and
+   serve the lightweight GIF. On Windows, use mock/manual/other API data because
+   the bundled Claude Desktop cookie/Keychain collector is macOS-specific.
 3. **Install real-time loading for the first time**: read
    [references/realtime-firmware.md](references/realtime-firmware.md). Verify
    the exact firmware version before touching binary offsets.
@@ -42,14 +47,16 @@ artifacts into a shareable project.
 - Keep animation bounded and prefer less than 90 KB for smooth decoding; still
   images use two slow frames, while source GIFs may retain up to eight frames.
 - Keep rows `0..39` empty when retaining the stock clock/date overlay.
-- Keep the Mac and AP01 on the same non-isolated LAN and reserve the Mac IP.
+- Keep the Bridge computer and AP01 on the same non-isolated LAN and reserve
+  the computer's IP.
 - Treat Wi-Fi/LAN as the content path; do not ask the user to prepare a USB
   data cable or rely on the charging-base contacts.
 - For first-loader work, require stable AP01 power, Mi Home pairing/online
   status, internet access, and the owner's Xiaomi account. For ordinary local
-  artwork, internet is optional after the loader is installed. Quota mode
-  still needs internet access on the Mac.
-- Ensure macOS firewall/VPN settings allow inbound LAN access to TCP 8765.
+  artwork, internet is optional after the loader is installed. Automatic
+  quota mode still needs internet access on its macOS host.
+- Ensure macOS or Windows firewall/VPN settings allow inbound LAN access to
+  TCP 8765. Windows should allow Python on Private networks only.
 - Treat the firmware patch as specific to model `njcuk.enstor.ap01`, firmware
   `1.0.2_0031`; do not reuse its offsets on another build.
 - Start the bridge before installing and require a logged AP01
@@ -71,6 +78,8 @@ Confirm the bridge health and device request:
 ```bash
 curl --noproxy '*' http://127.0.0.1:8765/health
 ```
+
+On Windows use `Invoke-RestMethod http://127.0.0.1:8765/health`.
 
 Report separately:
 

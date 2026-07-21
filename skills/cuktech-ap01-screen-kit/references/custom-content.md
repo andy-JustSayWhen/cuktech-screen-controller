@@ -10,6 +10,9 @@ photo, clock face, or any screen other than the quota dashboard.
   --fit contain --background '#01040B'
 ```
 
+On Windows replace `.venv/bin/python` with
+`.\.venv\Scripts\python.exe` and use PowerShell path syntax.
+
 Use `cover` for full-bleed artwork and `stretch` only when the source already
 has a 4:3 aspect ratio. The converter emits a lightweight 320x240 GIF89a. A
 still image becomes a looping two-frame container; an input GIF retains visible
@@ -43,6 +46,13 @@ Generate to a temporary path and rename it atomically:
 ```bash
 .venv/bin/python ap01_prepare_screen.py INPUT artifacts/screen.gif.tmp
 mv artifacts/screen.gif.tmp artifacts/screen.gif
+```
+
+PowerShell equivalent:
+
+```powershell
+.\.venv\Scripts\python.exe ap01_prepare_screen.py INPUT artifacts\screen.gif.tmp
+Move-Item -Force artifacts\screen.gif.tmp artifacts\screen.gif
 ```
 
 The AP01 requests `/screen.gif` periodically and stores it in RAM. Do not run
