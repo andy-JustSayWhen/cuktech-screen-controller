@@ -10,9 +10,47 @@ import unittest
 import urllib.request
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest import mock
+
+import ap01_wifi_bridge as bridge
+from quota_dashboard import Quota
 
 
 class WiFiBridgeTests(unittest.TestCase):
+    def test_refresh_keeps_codex_live_when_claude_is_unavailable(self) -> None:
+        with TemporaryDirectory() as directory:
+            artifacts = Path(directory)
+            paths = {
+                "ARTIFACTS": artifacts,
+                "PNG": artifacts / "quota-dashboard.png",
+                "GIF": artifacts / "quota-dashboard.gif",
+                "MASTER": artifacts / "quota-dashboard-master.png",
+                "JSON_OUT": artifacts / "quota-current.json",
+            }
+            codex = Quota(
+                provider="CODEX",
+                used_percent=None,
+                weekly_used_percent=50.0,
+                plan="PRO",
+                source="test",
+            )
+            with (
+                mock.patch.multiple(bridge, **paths),
+                mock.patch.object(
+                    bridge,
+                    "fetch_claude_desktop",
+                    side_effect=RuntimeError("not installed"),
+                ),
+                mock.patch.object(bridge, "fetch_codex", return_value=codex),
+                mock.patch.object(bridge.time, "sleep"),
+            ):
+                document = bridge.refresh()
+
+            self.assertEqual(document["codex"]["weekly_used_percent"], 50.0)
+            self.assertEqual(document["claude"]["source"], "unavailable")
+            self.assertIn("warnings", document)
+            self.assertTrue(paths["GIF"].read_bytes().startswith(b"GIF89a"))
+
     def test_bridge_serves_health_and_placeholder_before_live_refresh(self) -> None:
         root = Path(__file__).resolve().parent
         with TemporaryDirectory() as directory:

@@ -40,6 +40,7 @@ class State:
         self.lock = threading.Lock()
         self.last_refresh: float | None = None
         self.error: str | None = None
+        self.warnings: list[str] = []
         self.refreshing = False
 
 
@@ -64,12 +65,33 @@ def _fetch_with_retry(label: str, callback, attempts: int = 3):
 
 
 def refresh() -> dict[str, object]:
-    """Refresh both official accounts and atomically replace public artifacts."""
+    """Refresh available accounts and atomically replace public artifacts."""
     with STATE.lock:
         STATE.refreshing = True
     try:
-        claude = _fetch_with_retry("Claude", fetch_claude_desktop)
-        codex = _fetch_with_retry("Codex", fetch_codex)
+        warnings: list[str] = []
+        try:
+            claude = _fetch_with_retry("Claude", fetch_claude_desktop)
+        except Exception as exc:
+            warnings.append(f"Claude: {exc}")
+            claude = Quota(
+                provider="CLAUDE",
+                used_percent=None,
+                plan="未配置",
+                source="unavailable",
+            )
+        try:
+            codex = _fetch_with_retry("Codex", fetch_codex)
+        except Exception as exc:
+            warnings.append(f"Codex: {exc}")
+            codex = Quota(
+                provider="CODEX",
+                used_percent=None,
+                plan="未配置",
+                source="unavailable",
+            )
+        if len(warnings) == 2:
+            raise RuntimeError("; ".join(warnings))
         temporary_png = PNG.with_name(PNG.name + ".tmp")
         temporary_gif = GIF.with_name(GIF.name + ".tmp")
         temporary_master = MASTER.with_name(MASTER.name + ".tmp")
@@ -86,6 +108,8 @@ def refresh() -> dict[str, object]:
             "claude": asdict(claude) | {"remaining_percent": claude.remaining_percent},
             "codex": asdict(codex) | {"remaining_percent": codex.remaining_percent},
         }
+        if warnings:
+            document["warnings"] = warnings
         temporary = JSON_OUT.with_suffix(".json.tmp")
         temporary.write_text(
             json.dumps(document, ensure_ascii=False, separators=(",", ":")) + "\n",
@@ -98,6 +122,7 @@ def refresh() -> dict[str, object]:
         with STATE.lock:
             STATE.last_refresh = time.time()
             STATE.error = None
+            STATE.warnings = warnings
         return document
     finally:
         with STATE.lock:
@@ -169,6 +194,7 @@ class Handler(BaseHTTPRequestHandler):
                         "ok": STATE.error is None,
                         "last_refresh": STATE.last_refresh,
                         "error": STATE.error,
+                        "warnings": STATE.warnings,
                         "refreshing": STATE.refreshing,
                         "snapshot_ready": GIF.is_file(),
                     },
