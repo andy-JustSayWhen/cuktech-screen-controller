@@ -3,7 +3,7 @@ import os
 import hashlib
 import io
 import json
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -15,6 +15,7 @@ from quota_dashboard import (
     _codex_executable,
     _compact_reset_summary,
     _decrypt_windows_cookie,
+    _parse_codex_usage,
     _read_json_rpc,
     _reset_countdown,
     render_frame,
@@ -24,6 +25,41 @@ from quota_dashboard import (
 
 
 class QuotaDashboardTests(unittest.TestCase):
+    def test_codex_usage_normalizes_today_and_last_30_days(self) -> None:
+        usage = _parse_codex_usage(
+            {
+                "summary": {
+                    "lifetimeTokens": 123_456,
+                    "peakDailyTokens": 9_999,
+                },
+                "dailyUsageBuckets": [
+                    {"startDate": "2026-07-21", "tokens": 100},
+                    {"startDate": "2026-07-23", "tokens": 300},
+                ],
+            },
+            date(2026, 7, 23),
+        )
+        self.assertEqual(usage["today_tokens"], 300)
+        self.assertEqual(usage["last_30d_tokens"], 400)
+        self.assertEqual(len(usage["daily_tokens"]), 30)
+        self.assertEqual(usage["daily_tokens"][-2], ("2026-07-22", 0))
+        self.assertEqual(usage["usage_as_of"], "2026-07-23")
+        self.assertEqual(usage["lifetime_tokens"], 123_456)
+        self.assertEqual(usage["peak_daily_tokens"], 9_999)
+
+    def test_codex_usage_does_not_invent_missing_today(self) -> None:
+        usage = _parse_codex_usage(
+            {
+                "dailyUsageBuckets": [
+                    {"startDate": "2026-07-22", "tokens": 250},
+                ]
+            },
+            date(2026, 7, 23),
+        )
+        self.assertIsNone(usage["today_tokens"])
+        self.assertEqual(usage["last_30d_tokens"], 250)
+        self.assertEqual(usage["usage_as_of"], "2026-07-22")
+
     def test_json_rpc_pipe_reader_is_windows_compatible(self) -> None:
         class Process:
             stdout = io.StringIO(

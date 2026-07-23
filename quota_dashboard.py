@@ -26,7 +26,7 @@ import subprocess
 import tempfile
 import threading
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -106,6 +106,12 @@ class Quota:
     fable_window_minutes: int | None = None
     fable_resets_at: int | None = None
     fable_label: str | None = None
+    today_tokens: int | None = None
+    last_30d_tokens: int | None = None
+    daily_tokens: tuple[tuple[str, int], ...] = ()
+    usage_as_of: str | None = None
+    lifetime_tokens: int | None = None
+    peak_daily_tokens: int | None = None
     plan: str | None = None
     source: str = "live"
 
@@ -115,6 +121,57 @@ class Quota:
         if not used:
             return 0.0
         return max(0.0, min(100.0, 100.0 - max(used)))
+
+
+def _parse_codex_usage(
+    payload: dict[str, Any],
+    today: date | None = None,
+) -> dict[str, Any]:
+    """Normalize Codex token history into the dashboard's local 30-day window."""
+
+    current_day = today or datetime.now().astimezone().date()
+    buckets: dict[str, int] = {}
+    for item in payload.get("dailyUsageBuckets") or []:
+        day = item.get("startDate")
+        tokens = item.get("tokens")
+        if not isinstance(day, str) or not isinstance(tokens, int):
+            continue
+        try:
+            date.fromisoformat(day)
+        except ValueError:
+            continue
+        buckets[day] = max(0, tokens)
+
+    first_day = current_day - timedelta(days=29)
+    daily_tokens = tuple(
+        (
+            (first_day + timedelta(days=offset)).isoformat(),
+            buckets.get((first_day + timedelta(days=offset)).isoformat(), 0),
+        )
+        for offset in range(30)
+    )
+    days_with_data = [
+        day for day in buckets if first_day.isoformat() <= day <= current_day.isoformat()
+    ]
+    summary = payload.get("summary") or {}
+    return {
+        "today_tokens": buckets.get(current_day.isoformat()),
+        "last_30d_tokens": (
+            sum(tokens for _, tokens in daily_tokens) if days_with_data else None
+        ),
+        "daily_tokens": daily_tokens,
+        "usage_as_of": max(buckets) if buckets else None,
+        "lifetime_tokens": (
+            summary.get("lifetimeTokens")
+            if isinstance(summary.get("lifetimeTokens"), int)
+            else None
+        ),
+        "peak_daily_tokens": (
+            summary.get("peakDailyTokens")
+            if isinstance(summary.get("peakDailyTokens"), int)
+            else None
+        ),
+    }
 
 
 def _read_json_rpc(proc: subprocess.Popen[str], request_id: int, timeout: float) -> dict[str, Any]:
@@ -188,6 +245,13 @@ def fetch_codex(timeout: float = 40.0) -> Quota:
         if "error" in response:
             raise RuntimeError(response["error"])
 
+        usage: dict[str, Any] = {}
+        proc.stdin.write('{"id":3,"method":"account/usage/read","params":null}\n')
+        proc.stdin.flush()
+        usage_response = _read_json_rpc(proc, 3, timeout)
+        if "error" not in usage_response:
+            usage = _parse_codex_usage(usage_response.get("result") or {})
+
         snapshot = response["result"]["rateLimits"]
         primary = snapshot.get("primary") or {}
         secondary = snapshot.get("secondary") or {}
@@ -218,6 +282,7 @@ def fetch_codex(timeout: float = 40.0) -> Quota:
                 weekly_window.get("windowDurationMins") if weekly_window is not None else None
             ),
             weekly_resets_at=weekly_window.get("resetsAt") if weekly_window is not None else None,
+            **usage,
             plan=snapshot.get("planType"),
             source="Codex app-server",
         )
