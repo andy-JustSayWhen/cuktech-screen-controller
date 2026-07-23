@@ -1,0 +1,38 @@
+{
+  "canvas": {"device": [320, 240], "master": [1280, 960]},
+  "protected_top_band": [0, 0, 320, 40],
+  "cards": {
+    "weekly": [7, 56, 144, 199],
+    "today": [149, 56, 313, 132],
+    "last_30_days": [149, 136, 313, 199]
+  },
+  "weekly": {
+    "title": [15, 68],
+    "ring_bounds": [24, 86, 125, 187],
+    "label_center": [74.5, 119],
+    "value_center": [74.5, 143]
+  },
+  "today": {
+    "title": [181, 68],
+    "value": [181, 82],
+    "sparkline_bounds": [158, 99, 299, 124]
+  },
+  "last_30_days": {
+    "title": [181, 147],
+    "value": [155, 174],
+    "bars": {"first_left": 211, "step": 13, "width": 7, "bottom": 190, "max_height": 34}
+  },
+  "footer": {
+    "reset": [10, 216],
+    "updated": [124, 216],
+    "data_as_of": [222, 216]
+  },
+  "colors": {
+    "background": "#01040B",
+    "normal": "#24D9F7",
+    "warning": "#FF9B42",
+    "critical": "#FF5C45",
+    "text": "#F7FAFF",
+    "muted": "#8FA2BD"
+  }
+}
