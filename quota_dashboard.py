@@ -1212,9 +1212,7 @@ def _format_tokens(value: int | None) -> str:
     if value is None:
         return "暂无数据"
     amount = value / 100_000_000
-    decimals = 1 if amount >= 10 else 2 if amount >= 1 else 3
-    rendered = f"{amount:.{decimals}f}".rstrip("0").rstrip(".")
-    return f"{rendered}亿"
+    return f"{amount:.0f}亿"
 
 
 def render_master(claude: Quota, codex: Quota, scale: int = MASTER_SCALE):

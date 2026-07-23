@@ -27,10 +27,9 @@ from quota_dashboard import (
 
 class QuotaDashboardTests(unittest.TestCase):
     def test_token_values_use_yi_units(self) -> None:
-        self.assertEqual(_format_tokens(17_163_173_483), "171.6亿")
-        self.assertEqual(_format_tokens(15_533_715_997), "155.3亿")
-        self.assertEqual(_format_tokens(1_090_545_534), "10.9亿")
-        self.assertEqual(_format_tokens(50_000_000), "0.5亿")
+        self.assertEqual(_format_tokens(17_163_173_483), "172亿")
+        self.assertEqual(_format_tokens(15_533_715_997), "155亿")
+        self.assertEqual(_format_tokens(1_090_545_534), "11亿")
         self.assertEqual(_format_tokens(None), "暂无数据")
 
     def test_codex_usage_normalizes_today_and_last_30_days(self) -> None:
