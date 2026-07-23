@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 
 from ap01_custom_ota import deliver, probe_ota_url, upload_to_xiaomi
@@ -75,6 +76,7 @@ def main() -> int:
         if args.url_output:
             args.url_output.parent.mkdir(parents=True, exist_ok=True)
             args.url_output.write_text(url + "\n", encoding="utf-8")
+            os.chmod(args.url_output, 0o600)
             print(f"OTA URL 已写入：{args.url_output}")
         print(url)
         return 0

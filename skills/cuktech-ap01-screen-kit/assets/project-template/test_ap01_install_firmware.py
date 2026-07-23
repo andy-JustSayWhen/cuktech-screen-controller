@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import stat
 import tempfile
 import unittest
 from pathlib import Path
@@ -74,6 +75,7 @@ class InstallFirmwareTests(unittest.TestCase):
                 output.read_text(encoding="utf-8").strip(),
                 "https://iot-ota-cdn.io.mi.com/object?signature=test",
             )
+            self.assertEqual(stat.S_IMODE(output.stat().st_mode), 0o600)
             deliver.assert_not_called()
 
     def test_download_only_can_reuse_signed_url(self) -> None:
