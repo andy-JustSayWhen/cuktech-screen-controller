@@ -49,10 +49,25 @@ class MiCloud:
     ) -> dict[str, Any]:
         """Load a Mi Home session without ever printing or copying its token.
 
-        Values set by the parent process take priority, followed by this
-        project's ignored .env file. A local JSON or signed-in Mi Home
-        preference file remains available for compatibility.
+        An explicitly selected JSON file takes priority. Values set by the
+        parent process come next, followed by this project's ignored .env.
+        A configured JSON or signed-in Mi Home preference file remains
+        available for compatibility.
         """
+
+        def load_json(selected: Path) -> dict[str, Any]:
+            payload = json.loads(selected.read_text(encoding="utf-8-sig"))
+            account = {
+                "userId": payload.get("userId") or payload.get("user_id"),
+                "passToken": payload.get("passToken") or payload.get("pass_token"),
+                "deviceId": payload.get("deviceId") or payload.get("device_id") or "",
+            }
+            if not account["userId"] or not account["passToken"]:
+                raise RuntimeError("米家凭据 JSON 缺少 userId 或 passToken")
+            return account
+
+        if credentials is not None:
+            return load_json(credentials)
 
         private_values = read_env_file(DEFAULT_ENV)
         user_id = (
@@ -76,24 +91,13 @@ class MiCloud:
                 ).strip(),
             }
 
-        selected = credentials
-        if selected is None:
-            configured = (
-                os.environ.get("CUKTECH_MI_CREDENTIALS")
-                or private_values.get("CUKTECH_MI_CREDENTIALS")
-                or ""
-            ).strip()
-            selected = Path(configured).expanduser() if configured else None
-        if selected is not None:
-            payload = json.loads(selected.read_text(encoding="utf-8-sig"))
-            account = {
-                "userId": payload.get("userId") or payload.get("user_id"),
-                "passToken": payload.get("passToken") or payload.get("pass_token"),
-                "deviceId": payload.get("deviceId") or payload.get("device_id") or "",
-            }
-            if not account["userId"] or not account["passToken"]:
-                raise RuntimeError("米家凭据 JSON 缺少 userId 或 passToken")
-            return account
+        configured = (
+            os.environ.get("CUKTECH_MI_CREDENTIALS")
+            or private_values.get("CUKTECH_MI_CREDENTIALS")
+            or ""
+        ).strip()
+        if configured:
+            return load_json(Path(configured).expanduser())
 
         preference = prefs or DEFAULT_PREFS
         try:
