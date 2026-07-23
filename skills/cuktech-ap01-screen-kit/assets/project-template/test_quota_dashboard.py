@@ -15,6 +15,7 @@ from quota_dashboard import (
     _codex_executable,
     _compact_reset_summary,
     _decrypt_windows_cookie,
+    _format_tokens,
     _parse_codex_usage,
     _read_json_rpc,
     _reset_countdown,
@@ -25,6 +26,13 @@ from quota_dashboard import (
 
 
 class QuotaDashboardTests(unittest.TestCase):
+    def test_token_values_use_yi_units(self) -> None:
+        self.assertEqual(_format_tokens(17_163_173_483), "171.6亿")
+        self.assertEqual(_format_tokens(15_533_715_997), "155.3亿")
+        self.assertEqual(_format_tokens(1_090_545_534), "10.9亿")
+        self.assertEqual(_format_tokens(50_000_000), "0.5亿")
+        self.assertEqual(_format_tokens(None), "暂无数据")
+
     def test_codex_usage_normalizes_today_and_last_30_days(self) -> None:
         usage = _parse_codex_usage(
             {

@@ -1211,13 +1211,10 @@ def _render_legacy_master(claude: Quota, codex: Quota, scale: int = MASTER_SCALE
 def _format_tokens(value: int | None) -> str:
     if value is None:
         return "暂无数据"
-    if value >= 1_000_000_000:
-        return f"{value / 1_000_000_000:.2f}B"
-    if value >= 1_000_000:
-        return f"{value / 1_000_000:.1f}M"
-    if value >= 1_000:
-        return f"{value / 1_000:.1f}K"
-    return str(value)
+    amount = value / 100_000_000
+    decimals = 1 if amount >= 10 else 2 if amount >= 1 else 3
+    rendered = f"{amount:.{decimals}f}".rstrip("0").rstrip(".")
+    return f"{rendered}亿"
 
 
 def render_master(claude: Quota, codex: Quota, scale: int = MASTER_SCALE):
@@ -1300,7 +1297,7 @@ def render_master(claude: Quota, codex: Quota, scale: int = MASTER_SCALE):
         muted if codex.today_tokens is None else white,
         bold=True,
         anchor="lm",
-        cjk=codex.today_tokens is None,
+        cjk=True,
     )
     recent = [tokens for _, tokens in codex.daily_tokens[-7:]]
     if recent and max(recent) > 0:
@@ -1329,7 +1326,7 @@ def render_master(claude: Quota, codex: Quota, scale: int = MASTER_SCALE):
         white if codex.last_30d_tokens is not None else muted,
         bold=True,
         anchor="lm",
-        cjk=codex.last_30d_tokens is None,
+        cjk=True,
     )
     if recent and max(recent) > 0:
         max_value = max(recent)
