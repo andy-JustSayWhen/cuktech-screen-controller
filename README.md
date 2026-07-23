@@ -293,6 +293,22 @@ non-isolated LAN and reserve that computer's DHCP address before building the UR
 Start the bridge before the final installation. A bridge log such as
 `AP01_IP "GET /screen.gif" 200` confirms end-to-end operation.
 
+### QR login without the macOS Mi Home app
+
+The one-time real-time loader installation needs Xiaomi account authorization,
+but it does not require the macOS Mi Home app. Run:
+
+```bash
+.venv/bin/python mi_login.py
+```
+
+Scan the QR code with the Xiaomi account that owns the target AP01. The command
+verifies model `njcuk.enstor.ap01`, then stores `userId`, `passToken`, and a
+random device identifier in the ignored project `.env` with mode `600`.
+Subsequent Xiaomi Cloud commands load that file automatically without printing
+credentials or asking for another login. Daily artwork and quota refreshes use
+only the LAN and do not access the Xiaomi account.
+
 ### Xiaomi FDS upload prerequisite
 
 The AP01 itself has no server-side FDS upload configuration. Passing the AP01

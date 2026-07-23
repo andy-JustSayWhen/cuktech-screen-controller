@@ -13,6 +13,18 @@ different version; port the reverse-engineered hooks first.
 - Install Python dependencies plus `riscv64-elf-gcc` and
   `riscv64-elf-binutils`.
 
+The owner's Xiaomi account can be authorized directly without the macOS Mi
+Home app. Generate a QR code, scan it with the account that owns the AP01, and
+let the command verify and save the reusable session in the ignored `.env`:
+
+```bash
+.venv/bin/python mi_login.py
+```
+
+This does not require changing the Mac startup security policy or SIP. Daily
+artwork and quota refreshes do not use the Xiaomi account after the one-time
+loader is installed.
+
 ## Build
 
 Download the matching stock firmware:

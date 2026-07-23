@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Minimal Xiaomi cloud client for researching the CUKTECH AP01 display.
 
-Credentials are refreshed from the local Mi Home app's preferences at runtime.
-They are never written into this repository or printed by this program.
+Credentials can come from environment variables, the private project .env,
+a local JSON file, or a signed-in Mi Home preference file. They are never
+printed by this program.
 """
 
 from __future__ import annotations
@@ -21,8 +22,11 @@ from urllib.parse import urlparse
 
 import requests
 
+from local_env import read_env_file
+
 
 MODEL = "njcuk.enstor.ap01"
+DEFAULT_ENV = Path(__file__).resolve().parent / ".env"
 DEFAULT_PREFS = Path.home() / (
     "Library/Group Containers/group.com.xiaomi.mihome/Library/Preferences/"
     "group.com.xiaomi.mihome.plist"
@@ -45,24 +49,40 @@ class MiCloud:
     ) -> dict[str, Any]:
         """Load a Mi Home session without ever printing or copying its token.
 
-        macOS can read the signed-in Mi Home preference file. Windows has no
-        equivalent plist, so its controller accepts a local JSON file through
-        ``CUKTECH_MI_CREDENTIALS``. Environment values are also useful for a
-        credential manager or CI wrapper and are never written to artifacts.
+        Values set by the parent process take priority, followed by this
+        project's ignored .env file. A local JSON or signed-in Mi Home
+        preference file remains available for compatibility.
         """
 
-        user_id = os.environ.get("CUKTECH_MI_USER_ID", "").strip()
-        pass_token = os.environ.get("CUKTECH_MI_PASS_TOKEN", "").strip()
+        private_values = read_env_file(DEFAULT_ENV)
+        user_id = (
+            os.environ.get("CUKTECH_MI_USER_ID")
+            or private_values.get("CUKTECH_MI_USER_ID")
+            or ""
+        ).strip()
+        pass_token = (
+            os.environ.get("CUKTECH_MI_PASS_TOKEN")
+            or private_values.get("CUKTECH_MI_PASS_TOKEN")
+            or ""
+        ).strip()
         if user_id and pass_token:
             return {
                 "userId": user_id,
                 "passToken": pass_token,
-                "deviceId": os.environ.get("CUKTECH_MI_DEVICE_ID", "").strip(),
+                "deviceId": (
+                    os.environ.get("CUKTECH_MI_DEVICE_ID")
+                    or private_values.get("CUKTECH_MI_DEVICE_ID")
+                    or ""
+                ).strip(),
             }
 
         selected = credentials
         if selected is None:
-            configured = os.environ.get("CUKTECH_MI_CREDENTIALS", "").strip()
+            configured = (
+                os.environ.get("CUKTECH_MI_CREDENTIALS")
+                or private_values.get("CUKTECH_MI_CREDENTIALS")
+                or ""
+            ).strip()
             selected = Path(configured).expanduser() if configured else None
         if selected is not None:
             payload = json.loads(selected.read_text(encoding="utf-8-sig"))
@@ -81,8 +101,8 @@ class MiCloud:
                 return plistlib.load(stream)["GroupShareAccountInfo"]
         except (OSError, KeyError, plistlib.InvalidFileException) as exc:
             raise RuntimeError(
-                "没有找到米家登录态。macOS 请先登录米家 App；Windows 请在软件中"
-                "选择仅保存在本机的米家凭据 JSON，或设置 CUKTECH_MI_CREDENTIALS。"
+                "没有找到米家登录态。请先运行 mi_login.py 扫码登录；也可以提供"
+                "本机米家凭据 JSON，或使用已登录米家 App 的偏好设置。"
             ) from exc
 
     def _refresh_session(self) -> None:

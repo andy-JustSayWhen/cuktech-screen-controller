@@ -284,6 +284,20 @@ Windows 使用 DPAPI 在内存中解密当前用户的 Claude Electron 登录态
 最终安装前先启动 Bridge。日志中出现
 `AP01_IP "GET /screen.gif" 200`，即表示端到端实时刷新已打通。
 
+### 不依赖 macOS 米家 App 的二维码登录
+
+首次安装实时加载器需要小米账号授权，但不要求安装或启动 macOS 米家 App。
+运行下面的命令后，用拥有目标 AP01 的小米账号扫码确认：
+
+```bash
+.venv/bin/python mi_login.py
+```
+
+脚本会先验证账号中存在型号 `njcuk.enstor.ap01` 的设备，再把 `userId`、
+`passToken` 和随机设备标识写入已忽略的项目 `.env`，文件权限固定为 `600`。
+后续小米云工具会自动读取该文件，不打印凭据，也不要求反复扫码。日常图片和
+额度刷新只走局域网，不使用小米账号。
+
 ### 小米 FDS 上传前提
 
 AP01 自身没有小米云端的 FDS 上传配置。把 AP01 的 DID/model 传给
