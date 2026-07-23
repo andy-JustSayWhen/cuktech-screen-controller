@@ -197,6 +197,49 @@ class QuotaDashboardTests(unittest.TestCase):
             all(master.getpixel((x, y)) == background for y in range(160) for x in range(1280))
         )
 
+    def test_weekly_ring_renders_100_90_50_and_10_percent_states(self) -> None:
+        claude = Quota(provider="CLAUDE", used_percent=None)
+        cases = (
+            (0, (36, 217, 247)),
+            (10, (36, 217, 247)),
+            (50, (255, 155, 66)),
+            (90, (255, 92, 69)),
+        )
+        frames = []
+        for used, expected_accent in cases:
+            frame = render_frame(
+                claude,
+                Quota(provider="CODEX", used_percent=None, weekly_used_percent=used),
+            )
+            self.assertIn(expected_accent, set(frame.get_flattened_data()))
+            frames.append(frame.tobytes())
+        self.assertEqual(len(set(frames)), 4)
+
+    def test_token_visualizations_change_with_daily_usage(self) -> None:
+        claude = Quota(provider="CLAUDE", used_percent=None)
+        low = Quota(
+            provider="CODEX",
+            used_percent=None,
+            weekly_used_percent=20,
+            today_tokens=100,
+            last_30d_tokens=700,
+            daily_tokens=tuple((f"2026-07-{day:02d}", 100) for day in range(17, 24)),
+        )
+        high = Quota(
+            provider="CODEX",
+            used_percent=None,
+            weekly_used_percent=20,
+            today_tokens=700,
+            last_30d_tokens=2_800,
+            daily_tokens=tuple(
+                (f"2026-07-{day:02d}", (day - 16) * 100) for day in range(17, 24)
+            ),
+        )
+        self.assertNotEqual(
+            render_frame(claude, low).crop((149, 56, 313, 199)).tobytes(),
+            render_frame(claude, high).crop((149, 56, 313, 199)).tobytes(),
+        )
+
     def test_ap01_gif_uses_verified_animation_container(self) -> None:
         from PIL import Image
 

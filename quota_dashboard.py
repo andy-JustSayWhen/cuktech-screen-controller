@@ -47,6 +47,10 @@ CLAUDE_DATA_DIR = (
 )
 CLAUDE_APP = Path("/Applications/Claude.app")
 PROVIDER_ICON_DIR = Path(__file__).resolve().parent / "reference/provider-icons"
+DASHBOARD_BASE_PATH = (
+    Path(__file__).resolve().parent
+    / "reference/codex-dashboard/base-plate-1280x960.png"
+)
 
 
 def _codex_executable() -> str:
@@ -786,7 +790,7 @@ def _compact_reset_summary(quota: Quota) -> str:
     return f"{five}｜{week}"
 
 
-def render_master(claude: Quota, codex: Quota, scale: int = MASTER_SCALE):
+def _render_legacy_master(claude: Quota, codex: Quota, scale: int = MASTER_SCALE):
     """Render a high-resolution vector-like master using 320x240 logical units."""
 
     from PIL import Image, ImageColor, ImageDraw, ImageFilter
@@ -1204,6 +1208,159 @@ def render_master(claude: Quota, codex: Quota, scale: int = MASTER_SCALE):
     return image.convert("RGB")
 
 
+def _format_tokens(value: int | None) -> str:
+    if value is None:
+        return "暂无数据"
+    if value >= 1_000_000_000:
+        return f"{value / 1_000_000_000:.2f}B"
+    if value >= 1_000_000:
+        return f"{value / 1_000_000:.1f}M"
+    if value >= 1_000:
+        return f"{value / 1_000:.1f}K"
+    return str(value)
+
+
+def render_master(claude: Quota, codex: Quota, scale: int = MASTER_SCALE):
+    """Compose live Codex data over the approved textless GPT Image base plate."""
+
+    from PIL import Image, ImageDraw, ImageFilter
+
+    if scale < 1:
+        raise ValueError("scale must be at least 1")
+
+    def s(value: float) -> int:
+        return int(round(value * scale))
+
+    if DASHBOARD_BASE_PATH.exists():
+        with Image.open(DASHBOARD_BASE_PATH) as source:
+            image = source.convert("RGBA").resize(
+                (WIDTH * scale, HEIGHT * scale),
+                Image.Resampling.LANCZOS,
+            )
+    else:
+        image = Image.new("RGBA", (WIDTH * scale, HEIGHT * scale), "#01040B")
+    draw = ImageDraw.Draw(image)
+    cyan = "#24D9F7"
+    muted = "#8FA2BD"
+    faint = "#38506F"
+    white = "#F7FAFF"
+    remaining = _left_percent(codex.weekly_used_percent)
+    if remaining is None:
+        accent = muted
+    elif remaining <= 10:
+        accent = "#FF5C45"
+    elif remaining <= 50:
+        accent = "#FF9B42"
+    else:
+        accent = cyan
+
+    def text(
+        xy: tuple[float, float],
+        value: str,
+        size: int,
+        fill: str = white,
+        *,
+        bold: bool = False,
+        anchor: str = "la",
+        cjk: bool = False,
+    ) -> None:
+        face = _cjk_font(s(size), bold=bold) if cjk else _font(s(size), bold=bold)
+        draw.text((s(xy[0]), s(xy[1])), value, font=face, fill=fill, anchor=anchor)
+
+    # Brand and primary gauge.
+    text((15, 68), "CODEX", 12, bold=True, anchor="lm")
+    ring_bounds = (24, 86, 125, 187)
+    ring_width = max(2, s(5))
+    if remaining is not None and remaining > 0:
+        end = -90 + 360 * remaining / 100
+        glow = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        glow_draw = ImageDraw.Draw(glow)
+        glow_draw.arc(
+            tuple(s(value) for value in ring_bounds),
+            start=-90,
+            end=end,
+            fill=accent,
+            width=ring_width,
+        )
+        blurred = glow.filter(ImageFilter.GaussianBlur(s(2.2)))
+        blurred.putalpha(blurred.getchannel("A").point(lambda value: value // 2))
+        image.alpha_composite(blurred)
+        image.alpha_composite(glow)
+    text((74.5, 119), "本周剩余", 9, muted, bold=True, anchor="mm", cjk=True)
+    value = "—" if remaining is None else f"{remaining:.0f}%"
+    text((74.5, 143), value, 30, accent if remaining is not None else muted, bold=True, anchor="mm")
+
+    # Today card: real value plus the latest seven daily buckets as a sparkline.
+    text((181, 68), "今日消耗", 10, bold=True, anchor="lm", cjk=True)
+    today_text = _format_tokens(codex.today_tokens)
+    text(
+        (181, 82),
+        today_text,
+        9 if codex.today_tokens is None else 12,
+        muted if codex.today_tokens is None else white,
+        bold=True,
+        anchor="lm",
+        cjk=codex.today_tokens is None,
+    )
+    recent = [tokens for _, tokens in codex.daily_tokens[-7:]]
+    if recent and max(recent) > 0:
+        max_value = max(recent)
+        points = [
+            (
+                s(158 + index * 23.5),
+                s(124 - 25 * tokens / max_value),
+            )
+            for index, tokens in enumerate(recent)
+        ]
+        draw.line(points, fill=cyan, width=max(1, s(1.4)), joint="curve")
+        dot = max(1, s(1.8))
+        for x, y in points:
+            draw.ellipse((x - dot, y - dot, x + dot, y + dot), fill=cyan)
+    else:
+        draw.line((s(158), s(118), s(301), s(118)), fill=faint, width=max(1, s(1)))
+
+    # 30-day card: total plus seven dynamic bars.
+    text((181, 147), "近30天", 10, bold=True, anchor="lm", cjk=True)
+    total_text = _format_tokens(codex.last_30d_tokens)
+    text(
+        (155, 174),
+        total_text,
+        16 if codex.last_30d_tokens is not None else 9,
+        white if codex.last_30d_tokens is not None else muted,
+        bold=True,
+        anchor="lm",
+        cjk=codex.last_30d_tokens is None,
+    )
+    if recent and max(recent) > 0:
+        max_value = max(recent)
+        for index, tokens in enumerate(recent):
+            left = 211 + index * 13
+            height = 7 + 27 * tokens / max_value
+            draw.rounded_rectangle(
+                (s(left), s(190 - height), s(left + 7), s(190)),
+                radius=s(2),
+                fill=cyan if tokens else faint,
+            )
+
+    if codex.weekly_resets_at:
+        reset = datetime.fromtimestamp(codex.weekly_resets_at).astimezone()
+        weekday = "一二三四五六日"[reset.weekday()]
+        reset_text = f"周{weekday} {reset:%H:%M} 重置"
+    else:
+        reset_text = "重置时间暂无"
+    text((10, 216), reset_text, 7, muted, bold=True, anchor="lm", cjk=True)
+    text((124, 216), f"更新 {datetime.now().astimezone():%H:%M}", 7, muted, bold=True, anchor="lm", cjk=True)
+    as_of = (
+        f"数据截至 {int(codex.usage_as_of[5:7])}月{int(codex.usage_as_of[8:10])}日"
+        if codex.usage_as_of
+        else "消耗数据暂无"
+    )
+    text((222, 216), as_of, 7, muted, bold=True, anchor="lm", cjk=True)
+
+    draw.rectangle((0, 0, WIDTH * scale - 1, s(40) - 1), fill="#01040B")
+    return image.convert("RGB")
+
+
 def _frame_from_master(master, output_scale: int = 1):
     from PIL import Image, ImageDraw
 
@@ -1257,10 +1414,18 @@ def render_outputs(
             optimize=True,
         )
     # AP01's pet page expects an animated GIF89a; a one-frame GIF can render as
-    # black.  Four low-entropy frames add a restrained travelling glint to both
-    # provider rails.  Text and quota values remain fixed, so the tiny decoder
-    # stays smooth while the physical display has visible life.
+    # black. Four low-entropy frames move a tiny glint along the live weekly
+    # arc while every chart remains driven by current account data.
     pulse_phases = (0.12, 0.38, 0.66, 0.38)
+    remaining = _left_percent(codex.weekly_used_percent)
+    if remaining is None:
+        glint_color = "#8FA2BD"
+    elif remaining <= 10:
+        glint_color = "#FFB0A3"
+    elif remaining <= 50:
+        glint_color = "#FFD09A"
+    else:
+        glint_color = "#A9F3FF"
     for color_count in (96, 80, 72, 64):
         shared_palette = frame.quantize(
             colors=color_count,
@@ -1271,17 +1436,13 @@ def render_outputs(
         for phase in pulse_phases:
             animated = frame.copy()
             animated_draw = ImageDraw.Draw(animated)
-            claude_y = 56 + round(phase * 63)
-            codex_y = 150 + round(phase * 62)
-            animated_draw.rounded_rectangle(
-                (12, claude_y - 4, 14, claude_y + 4),
-                radius=1,
-                fill="#FFD09A",
-            )
-            animated_draw.rounded_rectangle(
-                (12, codex_y - 4, 14, codex_y + 4),
-                radius=1,
-                fill="#7BE6FF",
+            span = 360 * (remaining or 0) / 100
+            angle = math.radians(-90 + span * phase)
+            glint_x = 74.5 + 50.5 * math.cos(angle)
+            glint_y = 136.5 + 50.5 * math.sin(angle)
+            animated_draw.ellipse(
+                (glint_x - 1.5, glint_y - 1.5, glint_x + 1.5, glint_y + 1.5),
+                fill=glint_color,
             )
             gif_frames.append(
                 animated.quantize(palette=shared_palette, dither=Image.Dither.NONE)
