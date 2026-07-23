@@ -9,4 +9,4 @@ artifacts/*
 .build/
 dist/
 .codegraph/
-.env.local
+.env
