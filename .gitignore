@@ -1,12 +1,41 @@
+# Python environments and caches
 .venv/
 .venv-windows-build/
 __pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+
+# Generated runtime and firmware artifacts
 artifacts/*
 !artifacts/.gitkeep
 *.bin
 *.zip
+*.elf
+*.o
+*.map
+*.dSYM/
+*.log
+*.pid
+*.lock
+*.tmp
+*.part
+*ota-url*.txt
+
+# Build and package output
 .DS_Store
+Thumbs.db
 .build/
 dist/
+
+# Local indexes, agent state, and secrets
 .codegraph/
+.codex/
 .env
+.env.*
+!.env.example
