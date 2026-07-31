@@ -17,6 +17,10 @@ The owner's Xiaomi account can be authorized directly without the macOS Mi
 Home app. Generate a QR code, scan it with the account that owns the AP01, and
 let the command verify and save the reusable session in the ignored `.env`:
 
+The upstream source, pinned revision, reused protocol boundary, AP01-specific
+additions, and proxy rule are maintained only in
+`knowledge/AP01-真机部署工作流/AP01-真机部署工作流.md` section 3.1.
+
 ```bash
 .venv/bin/python mi_login.py
 ```
