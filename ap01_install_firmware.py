@@ -40,6 +40,11 @@ def main() -> int:
     parser.add_argument("--fds-model", help="explicit FDS-capable gateway model")
     parser.add_argument("--timeout", type=int, default=360)
     args = parser.parse_args()
+    if args.download_only:
+        parser.error(
+            "--download-only 已停用：AP01 真机实测该命令会切换运行内容；"
+            "请先上传并完整回读，再使用 --install"
+        )
     header = args.firmware.read_bytes()[:4]
     if header != b"BFNP":
         raise SystemExit("firmware does not have an AP01 BFNP header")

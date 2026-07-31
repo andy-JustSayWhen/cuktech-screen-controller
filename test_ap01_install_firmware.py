@@ -78,14 +78,13 @@ class InstallFirmwareTests(unittest.TestCase):
             self.assertEqual(stat.S_IMODE(output.stat().st_mode), 0o600)
             deliver.assert_not_called()
 
-    def test_download_only_can_reuse_signed_url(self) -> None:
+    def test_download_only_is_blocked_before_cloud_access(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             firmware = self.make_firmware(root)
-            cloud = Mock()
             url = "https://iot-ota-cdn.io.mi.com/object?signature=test"
             with (
-                patch.object(ap01_install_firmware, "MiCloud", return_value=cloud),
+                patch.object(ap01_install_firmware, "MiCloud") as cloud,
                 patch.object(ap01_install_firmware, "probe_ota_url") as probe,
                 patch.object(ap01_install_firmware, "upload_to_xiaomi") as upload,
                 patch.object(ap01_install_firmware, "deliver") as deliver,
@@ -100,27 +99,22 @@ class InstallFirmwareTests(unittest.TestCase):
                     ],
                 ),
             ):
-                self.assertEqual(ap01_install_firmware.main(), 0)
-            probe.assert_called_once_with(url)
+                with self.assertRaises(SystemExit):
+                    ap01_install_firmware.main()
+            cloud.assert_not_called()
+            probe.assert_not_called()
             upload.assert_not_called()
-            deliver.assert_called_once_with(
-                cloud,
-                firmware,
-                url,
-                360,
-                download_only=True,
-            )
+            deliver.assert_not_called()
 
-    def test_download_only_can_read_signed_url_file(self) -> None:
+    def test_download_only_url_file_is_blocked_before_file_read(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             firmware = self.make_firmware(root)
             url = "https://iot-ota-cdn.io.mi.com/object?signature=test"
             url_file = root / "ota-url.txt"
             url_file.write_text(url + "\n", encoding="utf-8")
-            cloud = Mock()
             with (
-                patch.object(ap01_install_firmware, "MiCloud", return_value=cloud),
+                patch.object(ap01_install_firmware, "MiCloud") as cloud,
                 patch.object(ap01_install_firmware, "probe_ota_url") as probe,
                 patch.object(ap01_install_firmware, "upload_to_xiaomi") as upload,
                 patch.object(ap01_install_firmware, "deliver") as deliver,
@@ -135,16 +129,12 @@ class InstallFirmwareTests(unittest.TestCase):
                     ],
                 ),
             ):
-                self.assertEqual(ap01_install_firmware.main(), 0)
-            probe.assert_called_once_with(url)
+                with self.assertRaises(SystemExit):
+                    ap01_install_firmware.main()
+            cloud.assert_not_called()
+            probe.assert_not_called()
             upload.assert_not_called()
-            deliver.assert_called_once_with(
-                cloud,
-                firmware,
-                url,
-                360,
-                download_only=True,
-            )
+            deliver.assert_not_called()
 
 
 if __name__ == "__main__":
