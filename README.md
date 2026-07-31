@@ -283,9 +283,8 @@ non-isolated LAN and reserve that computer's DHCP address before building the UR
   --url http://COMPUTER_LAN_IP:8765/screen.gif \
   --refresh-seconds 300
 
-# Validate transport, then install the exact prebuilt image.
-.venv/bin/python ap01_install_firmware.py \
-  artifacts/ap01-1.0.2_0031-screen-realtime.bin --download-only
+# Upload and read back the exact prebuilt image, then install it once after
+# checking the read-back bytes and recovery material.
 .venv/bin/python ap01_install_firmware.py \
   artifacts/ap01-1.0.2_0031-screen-realtime.bin --install
 ```
@@ -335,13 +334,13 @@ On the uploader's Mac/account:
 If automatic discovery is ambiguous, add a real gateway identity owned by
 that account: `--fds-did DID --fds-model lumi.gateway.MODEL`.
 
-On the AP01 owner's Mac/account, immediately validate download without
-installing:
+On the AP01 owner's Mac/account, install only after the uploader and owner have
+verified the exact same BIN bytes and recovery material:
 
 ```bash
 .venv/bin/python ap01_install_firmware.py \
   artifacts/screen-realtime.bin \
-  --download-only --ota-url-file /path/to/ap01-ota-url.txt --timeout 360
+  --install --ota-url-file /path/to/ap01-ota-url.txt --timeout 360
 ```
 
 The signed URL is transferable, but temporary. Both sides must use the same
