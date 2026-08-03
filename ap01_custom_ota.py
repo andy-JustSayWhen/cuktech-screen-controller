@@ -240,6 +240,30 @@ def recent_ota_errors(cloud: MiCloud, did: str, since: int) -> list[str]:
     return errors
 
 
+def ota_install_stage_observed(state: Any, progress: Any) -> bool:
+    """Return whether AP01 reached a state that can precede an install reboot."""
+
+    return state in ("downloaded", "installing", "installed") or progress == 100
+
+
+def ota_install_reboot_observed(
+    *,
+    download_only: bool,
+    saw_install_stage: bool,
+    initial_life: int | None,
+    life: Any,
+) -> bool:
+    """Require both a pre-reboot stage and a decreased device uptime."""
+
+    return (
+        not download_only
+        and saw_install_stage
+        and isinstance(life, int)
+        and initial_life is not None
+        and life < initial_life
+    )
+
+
 def deliver(
     cloud: MiCloud,
     firmware: Path,
@@ -295,17 +319,16 @@ def deliver(
                 else progress
             )
             state_value = state[0] if isinstance(state, list) and state else state
-            if state_value in ("installing", "installed") or progress_value == 100:
+            if ota_install_stage_observed(state_value, progress_value):
                 saw_install_stage = True
             # AP01 resets the OTA progress field to 101 after a successful
             # install/reboot too.  A decreased uptime after observing the
             # install stage is stronger evidence than that stale marker.
-            if (
-                not download_only
-                and saw_install_stage
-                and isinstance(life, int)
-                and initial_life is not None
-                and life < initial_life
+            if ota_install_reboot_observed(
+                download_only=download_only,
+                saw_install_stage=saw_install_stage,
+                initial_life=initial_life,
+                life=life,
             ):
                 print("AP01 已完成安装、重启并重新上线")
                 return

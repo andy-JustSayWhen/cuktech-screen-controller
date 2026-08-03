@@ -7,7 +7,11 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import ap01_install_firmware
-from ap01_custom_ota import choose_fds_device
+from ap01_custom_ota import (
+    choose_fds_device,
+    ota_install_reboot_observed,
+    ota_install_stage_observed,
+)
 from mi_cloud import MiCloud
 
 
@@ -135,6 +139,34 @@ class InstallFirmwareTests(unittest.TestCase):
             probe.assert_not_called()
             upload.assert_not_called()
             deliver.assert_not_called()
+
+    def test_downloaded_at_fifty_then_uptime_reset_is_install_success(self) -> None:
+        saw_stage = ota_install_stage_observed("downloaded", 50)
+        self.assertTrue(saw_stage)
+        self.assertTrue(
+            ota_install_reboot_observed(
+                download_only=False,
+                saw_install_stage=saw_stage,
+                initial_life=1010,
+                life=9,
+            )
+        )
+        self.assertFalse(
+            ota_install_reboot_observed(
+                download_only=False,
+                saw_install_stage=False,
+                initial_life=1010,
+                life=9,
+            )
+        )
+        self.assertFalse(
+            ota_install_reboot_observed(
+                download_only=True,
+                saw_install_stage=saw_stage,
+                initial_life=1010,
+                life=9,
+            )
+        )
 
 
 if __name__ == "__main__":
